@@ -91,8 +91,28 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            # 优化SQLite性能，减少IO操作
+            'timeout': 20,  # 数据库锁超时时间（秒）
+        },
     }
 }
+
+# SQLite性能优化配置
+# 在应用启动时设置SQLite的WAL模式（Write-Ahead Logging），提高并发性能
+import sqlite3
+from django.db.backends.signals import connection_created
+
+def activate_sqlite_wal(sender, connection, **kwargs):
+    """激活SQLite的WAL模式，提高并发性能，减少IO竞争"""
+    if connection.vendor == 'sqlite':
+        with connection.cursor() as cursor:
+            cursor.execute('PRAGMA journal_mode=WAL;')  # 启用WAL模式
+            cursor.execute('PRAGMA synchronous=NORMAL;')  # 平衡性能和安全性
+            cursor.execute('PRAGMA cache_size=-64000;')  # 设置64MB缓存
+            cursor.execute('PRAGMA temp_store=MEMORY;')  # 临时表存储在内存中
+
+connection_created.connect(activate_sqlite_wal)
 
 
 # Password validation
@@ -143,15 +163,32 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS配置
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',  # React默认开发端口
+    'http://127.0.0.1:3000',  # 本地IP（Edge浏览器可能使用）
     'http://172.31.180.1:3000',  # 云服务器内网前端端口
     'http://8.153.95.63:3000',  # 云服务器公网前端端口
 ]
 CORS_ALLOW_CREDENTIALS = True  # 允许携带cookies
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]  # 允许的请求头
 
 # Session配置
-SESSION_COOKIE_HTTPONLY = False  # 允许JavaScript访问cookie
-SESSION_COOKIE_SAMESITE = 'Lax'  # 允许跨站点cookie
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # 使用数据库存储session
+SESSION_COOKIE_HTTPONLY = False  # 允许JavaScript访问cookie（开发环境）
+SESSION_COOKIE_SAMESITE = 'Lax'  # 允许跨站点cookie（Lax适用于同站请求，localhost和127.0.0.1视为同站）
+SESSION_COOKIE_SECURE = False  # 开发环境不需要HTTPS（生产环境应设为True）
+SESSION_COOKIE_DOMAIN = None  # 不限制域名，允许localhost和127.0.0.1
+# 优化：使用缓存存储session，减少数据库IO操作
+# 如果缓存不可用，会自动回退到数据库存储
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'  # 使用缓存+数据库存储session（减少IO）
+SESSION_CACHE_ALIAS = 'default'  # 使用默认缓存
 
 # 媒体文件配置
 MEDIA_URL = '/media/'

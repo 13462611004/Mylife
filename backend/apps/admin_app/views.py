@@ -14,9 +14,8 @@ import json
 def admin_login(request):
     """管理员登录"""
     try:
-        # 获取请求数据
-        data = json.loads(request.body)
-        password = data.get('password')
+        # 使用 DRF 的 request.data 获取请求数据（支持 JSON 和 Form 数据）
+        password = request.data.get('password')
 
         if not password:
             return Response({'error': '请提供密码'}, status=status.HTTP_400_BAD_REQUEST)
@@ -32,10 +31,14 @@ def admin_login(request):
         if check_password(password, admin_setting.admin_password):
             # 设置session
             request.session['is_admin'] = True
+            request.session.save()  # 确保session保存
             return Response({'message': '登录成功'}, status=status.HTTP_200_OK)
         else:
             return Response({'error': '密码错误'}, status=status.HTTP_401_UNAUTHORIZED)
     except Exception as e:
+        import traceback
+        print(f"登录错误: {str(e)}")
+        print(traceback.format_exc())
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @csrf_exempt

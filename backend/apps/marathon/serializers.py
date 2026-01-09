@@ -25,6 +25,62 @@ class MarathonSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created_at', 'updated_at']  # 只读字段
 
+    def normalize_province_name(self, province):
+        """标准化省份名称：转换为地图数据中的格式"""
+        if not province:
+            return province
+        province_map = {
+            '广西壮族自治区': '广西',
+            '西藏自治区': '西藏',
+            '新疆维吾尔自治区': '新疆',
+            '宁夏回族自治区': '宁夏',
+            '内蒙古自治区': '内蒙古',
+            '香港特别行政区': '香港',
+            '澳门特别行政区': '澳门',
+        }
+        if province in province_map:
+            return province_map[province]
+        else:
+            # 对于其他省份，移除"省"、"市"、"自治区"等后缀
+            return province.replace('省', '').replace('市', '').replace('自治区', '')
+
+    def normalize_city_name(self, city):
+        """标准化城市名称：移除"市"、"县"、"区"等后缀"""
+        if not city:
+            return city
+        suffixes = ['市', '县', '区', '自治州', '盟', '地区']
+        normalized = city
+        for suffix in suffixes:
+            if normalized.endswith(suffix):
+                normalized = normalized[:-len(suffix)]
+                break
+        return normalized
+
+    def normalize_district_name(self, district):
+        """标准化区县名称：移除"区"、"县"等后缀"""
+        if not district:
+            return district
+        suffixes = ['区', '县', '市', '自治县', '自治旗']
+        normalized = district
+        for suffix in suffixes:
+            if normalized.endswith(suffix):
+                normalized = normalized[:-len(suffix)]
+                break
+        return normalized
+
+    def validate(self, data):
+        """验证和标准化数据"""
+        # 标准化省份名称
+        if 'province' in data and data['province']:
+            data['province'] = self.normalize_province_name(data['province'])
+        # 标准化城市名称
+        if 'city' in data and data['city']:
+            data['city'] = self.normalize_city_name(data['city'])
+        # 标准化区县名称
+        if 'district' in data and data['district']:
+            data['district'] = self.normalize_district_name(data['district'])
+        return data
+
     def to_representation(self, instance):
         """自定义序列化输出"""
         representation = super().to_representation(instance)
@@ -56,3 +112,59 @@ class MarathonRegistrationSerializer(serializers.ModelSerializer):
             'notes', 'created_at', 'updated_at'
         ]
         read_only_fields = ['created_at', 'updated_at']  # 只读字段
+
+    def normalize_province_name(self, province):
+        """标准化省份名称：转换为地图数据中的格式"""
+        if not province:
+            return province
+        province_map = {
+            '广西壮族自治区': '广西',
+            '西藏自治区': '西藏',
+            '新疆维吾尔自治区': '新疆',
+            '宁夏回族自治区': '宁夏',
+            '内蒙古自治区': '内蒙古',
+            '香港特别行政区': '香港',
+            '澳门特别行政区': '澳门',
+        }
+        if province in province_map:
+            return province_map[province]
+        else:
+            # 对于其他省份，移除"省"、"市"、"自治区"等后缀
+            return province.replace('省', '').replace('市', '').replace('自治区', '')
+
+    def normalize_city_name(self, city):
+        """标准化城市名称：移除"市"、"县"、"区"等后缀"""
+        if not city:
+            return city
+        suffixes = ['市', '县', '区', '自治州', '盟', '地区']
+        normalized = city
+        for suffix in suffixes:
+            if normalized.endswith(suffix):
+                normalized = normalized[:-len(suffix)]
+                break
+        return normalized
+
+    def normalize_district_name(self, district):
+        """标准化区县名称：移除"区"、"县"等后缀"""
+        if not district:
+            return district
+        suffixes = ['区', '县', '市', '自治县', '自治旗']
+        normalized = district
+        for suffix in suffixes:
+            if normalized.endswith(suffix):
+                normalized = normalized[:-len(suffix)]
+                break
+        return normalized
+
+    def validate(self, data):
+        """验证和标准化数据"""
+        # 标准化省份名称
+        if 'province' in data and data['province']:
+            data['province'] = self.normalize_province_name(data['province'])
+        # 标准化城市名称
+        if 'city' in data and data['city']:
+            data['city'] = self.normalize_city_name(data['city'])
+        # 标准化区县名称
+        if 'district' in data and data['district']:
+            data['district'] = self.normalize_district_name(data['district'])
+        return data

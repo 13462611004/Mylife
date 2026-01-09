@@ -74,14 +74,51 @@ class Marathon(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     
     def save(self, *args, **kwargs):
-        """保存时自动同步外键字段和字符串字段"""
-        # 如果外键字段有值，同步到字符串字段
+        """保存时自动同步外键字段和字符串字段，并标准化为地图需要的格式"""
+        # 省份名称标准化：转换为地图数据中的格式
         if self.province_obj:
-            self.province = self.province_obj.name
+            province_name = self.province_obj.name
+            # 省份名称映射：完整名称 -> 地图数据名称
+            province_map = {
+                '广西壮族自治区': '广西',
+                '西藏自治区': '西藏',
+                '新疆维吾尔自治区': '新疆',
+                '宁夏回族自治区': '宁夏',
+                '内蒙古自治区': '内蒙古',
+                '香港特别行政区': '香港',
+                '澳门特别行政区': '澳门',
+            }
+            if province_name in province_map:
+                self.province = province_map[province_name]
+            else:
+                # 对于其他省份，移除"省"、"市"、"自治区"等后缀
+                normalized = province_name.replace('省', '').replace('市', '').replace('自治区', '')
+                self.province = normalized
+        
+        # 城市名称标准化：移除"市"、"县"、"区"等后缀
         if self.city_obj:
-            self.city = self.city_obj.name
+            city_name = self.city_obj.name
+            # 移除常见的后缀
+            suffixes = ['市', '县', '区', '自治州', '盟', '地区']
+            normalized_city = city_name
+            for suffix in suffixes:
+                if normalized_city.endswith(suffix):
+                    normalized_city = normalized_city[:-len(suffix)]
+                    break
+            self.city = normalized_city
+        
+        # 区县名称标准化：移除"区"、"县"等后缀
         if self.district_obj:
-            self.district = self.district_obj.name
+            district_name = self.district_obj.name
+            # 移除常见的后缀
+            suffixes = ['区', '县', '市', '自治县', '自治旗']
+            normalized_district = district_name
+            for suffix in suffixes:
+                if normalized_district.endswith(suffix):
+                    normalized_district = normalized_district[:-len(suffix)]
+                    break
+            self.district = normalized_district
+        
         super().save(*args, **kwargs)
     
     class Meta:

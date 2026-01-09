@@ -9,9 +9,29 @@ interface CustomAxiosInstance extends Omit<AxiosInstance, 'get' | 'post' | 'put'
   patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
 }
 
+// 根据当前访问地址动态设置后端API基础URL
+const getBaseURL = (): string => {
+  // 优先使用环境变量
+  if (process.env.REACT_APP_API_BASE_URL) {
+    return process.env.REACT_APP_API_BASE_URL;
+  }
+  
+  // 根据当前访问的地址动态设置
+  const currentHost = window.location.hostname;
+  const currentPort = window.location.port;
+  
+  // 如果是公网IP，使用公网IP的8000端口
+  if (currentHost === '8.153.95.63' || currentHost === '172.31.180.1') {
+    return `http://${currentHost}:8000`;
+  }
+  
+  // 默认使用 localhost（本地开发）
+  return 'http://localhost:8000';
+};
+
 // 创建Axios实例
 const apiClient: CustomAxiosInstance = axios.create({
-  baseURL: 'http://8.153.95.63:8001', // 后端API基础URL（公网IP，不带/api）
+  baseURL: getBaseURL(), // 后端API基础URL（不包含/api）
   timeout: 30000, // 请求超时时间（30秒）
   withCredentials: true, // 允许携带cookies，用于Session认证
   headers: {

@@ -20,77 +20,39 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedRegionEvents, setSelectedRegionEvents] = useState<MarathonEvent[]>([]);
 
+  // 所有省份的标准化名称列表（与数据库中的格式一致）
   const allProvinces = [
-    '北京市', '天津市', '上海市', '重庆市',
-    '河北省', '山西省', '辽宁省', '吉林省', '黑龙江省',
-    '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省',
-    '河南省', '湖北省', '湖南省', '广东省', '广西壮族自治区', '海南省',
-    '四川省', '贵州省', '云南省', '西藏自治区', '陕西省', '甘肃省',
-    '青海省', '宁夏回族自治区', '新疆维吾尔自治区', '内蒙古自治区',
-    '香港特别行政区', '澳门特别行政区', '台湾省'
+    '北京', '天津', '上海', '重庆',
+    '河北', '山西', '辽宁', '吉林', '黑龙江',
+    '江苏', '浙江', '安徽', '福建', '江西', '山东',
+    '河南', '湖北', '湖南', '广东', '广西', '海南',
+    '四川', '贵州', '云南', '西藏', '陕西', '甘肃',
+    '青海', '宁夏', '新疆', '内蒙古',
+    '香港', '澳门', '台湾'
   ];
 
-  // 将数据库中的省份名称标准化为地图数据中的名称格式
-  // 地图数据中可能使用简化的名称（例如："广西" 而不是 "广西壮族自治区"）
-  const normalizeProvinceName = (province: string): string => {
-    if (!province) return province;
-    
-    // 省份名称映射：数据库名称 -> 地图数据名称
-    const provinceMap: Record<string, string> = {
-      '广西壮族自治区': '广西',
-      '西藏自治区': '西藏',
-      '新疆维吾尔自治区': '新疆',
-      '宁夏回族自治区': '宁夏',
-      '内蒙古自治区': '内蒙古',
-      '香港特别行政区': '香港',
-      '澳门特别行政区': '澳门',
-    };
-    
-    // 如果存在映射，返回映射后的名称；否则返回原名称
-    return provinceMap[province] || province;
-  };
-
-  // 将数据库中的城市名称标准化为地图数据中的名称格式
-  // 地图数据中通常不带"市"、"县"、"区"等后缀
-  const normalizeCityName = (city: string): string => {
-    if (!city) return city;
-    
-    // 移除常见的后缀
-    const suffixes = ['市', '县', '区', '自治州', '盟', '地区'];
-    let normalized = city;
-    for (const suffix of suffixes) {
-      if (normalized.endsWith(suffix)) {
-        normalized = normalized.slice(0, -suffix.length);
-        break; // 只移除一个后缀
-      }
-    }
-    
-    return normalized;
-  };
+  // 注意：数据库中的省份、城市、区县名称已经是标准化格式（地图需要的格式）
+  // 因此不需要再进行转换，直接使用即可
 
   const getProvinceData = () => {
     const provinceCount: Record<string, number> = {};
     
     console.log('原始赛事数据：', safeEvents);
     
+    // 数据库中的省份名称已经是标准化格式，直接使用
     safeEvents.forEach(event => {
       const province = event.province || '未知';
       if (province !== '未知') {
-        // 使用标准化的省份名称
-        const normalizedProvince = normalizeProvinceName(province);
-        provinceCount[normalizedProvince] = (provinceCount[normalizedProvince] || 0) + 1;
-        console.log(`省份 ${province} -> ${normalizedProvince}，当前计数：${provinceCount[normalizedProvince]}`);
+        provinceCount[province] = (provinceCount[province] || 0) + 1;
+        console.log(`省份 ${province}，当前计数：${provinceCount[province]}`);
       }
     });
 
-    // 使用标准化的省份名称创建结果
-    const result = allProvinces.map(province => {
-      const normalizedProvince = normalizeProvinceName(province);
-      return {
-        name: normalizedProvince, // 地图数据使用标准化名称
-        value: provinceCount[normalizedProvince] || 0
-      };
-    });
+    // 创建省份数据（allProvinces 已经是标准化格式，直接使用）
+    const result = allProvinces.map(province => ({
+      name: province, // 地图数据使用标准化名称
+      value: provinceCount[province] || 0
+    }));
     
     console.log('最终省份数据：', result);
     const provincesWithData = result.filter(p => p.value > 0);
@@ -104,90 +66,55 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
   const getCityData = (province: string) => {
     const cityCount: Record<string, number> = {};
     
-    // 将省份名称标准化以匹配数据库中的格式
-    // 因为数据库中可能存储的是完整名称（如"广西壮族自治区"），需要反向查找
-    const getOriginalProvinceName = (normalized: string): string => {
-      const reverseMap: Record<string, string> = {
-        '广西': '广西壮族自治区',
-        '西藏': '西藏自治区',
-        '新疆': '新疆维吾尔自治区',
-        '宁夏': '宁夏回族自治区',
-        '内蒙古': '内蒙古自治区',
-        '香港': '香港特别行政区',
-        '澳门': '澳门特别行政区',
-      };
-      return reverseMap[normalized] || normalized;
-    };
-    
-    const originalProvince = getOriginalProvinceName(province);
-    
+    // 数据库中的省份和城市名称已经是标准化格式，直接使用
     safeEvents.forEach(event => {
-      // 使用标准化后的省份名称匹配
-      const eventProvinceNormalized = normalizeProvinceName(event.province || '');
-      if (eventProvinceNormalized === province && event.city) {
-        // 使用标准化的城市名称
-        const normalizedCity = normalizeCityName(event.city);
-        cityCount[normalizedCity] = (cityCount[normalizedCity] || 0) + 1;
+      // 直接匹配省份名称（已经是标准化格式）
+      if (event.province === province && event.city) {
+        // 城市名称也已经是标准化格式（不带"市"等后缀）
+        cityCount[event.city] = (cityCount[event.city] || 0) + 1;
       }
     });
 
     const result = Object.keys(cityCount).map(city => ({
-      name: city, // 地图数据使用标准化名称（不带"市"等后缀）
+      name: city, // 数据库中的城市名称已经是标准化格式
       value: cityCount[city]
     }));
     
     console.log('城市数据生成（JSON）：', JSON.stringify(result));
-    console.log('原始省份名称：', originalProvince, '标准化后：', province);
+    console.log('省份名称：', province);
     return result;
   };
 
-  // 判断是否为直辖市（支持标准化前后的名称）
+  // 判断是否为直辖市（数据库中的名称已经是标准化格式）
   const isMunicipality = (province: string) => {
-    // 地图数据中的名称（标准化后）
-    const normalizedMunicipalities = ['北京', '天津', '上海', '重庆'];
-    // 数据库中的名称（完整名称）
-    const fullMunicipalities = ['北京市', '天津市', '上海市', '重庆市'];
-    return normalizedMunicipalities.includes(province) || fullMunicipalities.includes(province);
+    // 数据库中的省份名称已经是标准化格式（如"北京"而不是"北京市"）
+    const municipalities = ['北京', '天津', '上海', '重庆'];
+    return municipalities.includes(province);
   };
 
   // 获取直辖市的区县数据
   const getDistrictData = (province: string) => {
     // 对于直辖市，地图显示的是区县级别
-    // 所以需要统计每个区县的参赛次数
-    
-    // 获取原始省份名称（因为数据库中存储的是完整名称）
-    const getOriginalProvinceName = (normalized: string): string => {
-      const reverseMap: Record<string, string> = {
-        '北京': '北京市',
-        '天津': '天津市',
-        '上海': '上海市',
-        '重庆': '重庆市',
-      };
-      return reverseMap[normalized] || normalized;
-    };
-    
-    const originalProvince = getOriginalProvinceName(province);
+    // 数据库中的省份和区县名称已经是标准化格式，直接使用
     const districtCount: Record<string, number> = {};
     
     safeEvents.forEach(event => {
-      // 使用标准化后的省份名称匹配
-      const normalizedEventProvince = normalizeProvinceName(event.province || '');
+      // 直接匹配省份名称（已经是标准化格式）
       // 只统计该省的赛事，并且有区县数据的
-      if (normalizedEventProvince === province && event.district) {
-        // 使用标准化的区县名称（移除"区"、"县"等后缀）
-        const normalizedDistrict = normalizeCityName(event.district);
-        districtCount[normalizedDistrict] = (districtCount[normalizedDistrict] || 0) + 1;
+      if (event.province === province && event.district) {
+        // 区县名称也已经是标准化格式（不带"区"、"县"等后缀）
+        districtCount[event.district] = (districtCount[event.district] || 0) + 1;
       }
     });
 
     // 转换为ECharts需要的格式
     const result = Object.keys(districtCount).map(district => ({
-      name: district, // 地图数据使用标准化名称（不带"区"、"县"等后缀）
+      name: district, // 数据库中的区县名称已经是标准化格式
       value: districtCount[district]
     }));
     
     console.log('直辖市区县数据生成（JSON）：', JSON.stringify(result));
-    console.log('原始省份名称：', originalProvince, '标准化后：', province);
+    console.log('省份名称：', province);
     return result;
   };
 
@@ -310,40 +237,20 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
   // 获取某个地区的所有比赛
   const getEventsByRegion = (regionName: string): MarathonEvent[] => {
     if (currentLevel === 'country') {
-      // 全国地图级别：按省份筛选（使用标准化名称匹配）
-      return safeEvents.filter(event => {
-        const normalizedEventProvince = normalizeProvinceName(event.province || '');
-        return normalizedEventProvince === regionName;
-      });
+      // 全国地图级别：按省份筛选（数据库中的名称已经是标准化格式）
+      return safeEvents.filter(event => event.province === regionName);
     } else if (currentLevel === 'province') {
       // 省级地图级别：按城市或区县筛选
-      const originalProvince = (() => {
-        const reverseMap: Record<string, string> = {
-          '广西': '广西壮族自治区',
-          '西藏': '西藏自治区',
-          '新疆': '新疆维吾尔自治区',
-          '宁夏': '宁夏回族自治区',
-          '内蒙古': '内蒙古自治区',
-          '香港': '香港特别行政区',
-          '澳门': '澳门特别行政区',
-        };
-        return reverseMap[selectedProvince] || selectedProvince;
-      })();
-      
-      if (isMunicipality(originalProvince)) {
-        // 直辖市：按区县筛选（使用标准化名称匹配）
-        return safeEvents.filter(event => {
-          const normalizedEventProvince = normalizeProvinceName(event.province || '');
-          const normalizedEventDistrict = normalizeCityName(event.district || ''); // 区县也可能带后缀
-          return normalizedEventProvince === selectedProvince && normalizedEventDistrict === regionName;
-        });
+      if (isMunicipality(selectedProvince)) {
+        // 直辖市：按区县筛选（数据库中的名称已经是标准化格式）
+        return safeEvents.filter(event => 
+          event.province === selectedProvince && event.district === regionName
+        );
       } else {
-        // 普通省份：按城市筛选（使用标准化名称匹配）
-        return safeEvents.filter(event => {
-          const normalizedEventProvince = normalizeProvinceName(event.province || '');
-          const normalizedEventCity = normalizeCityName(event.city || '');
-          return normalizedEventProvince === selectedProvince && normalizedEventCity === regionName;
-        });
+        // 普通省份：按城市筛选（数据库中的名称已经是标准化格式）
+        return safeEvents.filter(event => 
+          event.province === selectedProvince && event.city === regionName
+        );
       }
     }
     return [];

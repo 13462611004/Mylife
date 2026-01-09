@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db import transaction
 from .models import Post, PostMedia
 
 
@@ -114,23 +115,33 @@ class PostCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """
         创建朋友圈及其媒体文件
+        优化：使用事务包装和批量创建，减少数据库IO操作
         """
         # 从验证后的数据中提取媒体文件和类型
         media_files = validated_data.pop('media_files', [])
         media_types = validated_data.pop('media_types', [])
         
-        # 创建朋友圈
-        post = Post.objects.create(**validated_data)
-        
-        # 创建媒体文件（如果有的话）
-        if media_files and media_types:
-            for i, (media_file, media_type) in enumerate(zip(media_files, media_types)):
-                PostMedia.objects.create(
-                    post=post,
-                    media_type=media_type,
-                    file=media_file,
-                    order=i
-                )
+        # 使用事务包装所有数据库操作，减少IO开销
+        with transaction.atomic():
+            # 创建朋友圈
+            post = Post.objects.create(**validated_data)
+            
+            # 创建媒体文件（如果有的话）
+            if media_files and media_types:
+                # 先保存所有文件到磁盘，然后批量创建数据库记录
+                # 这样可以减少数据库IO操作（从N次减少到1次）
+                media_objects = []
+                for i, (media_file, media_type) in enumerate(zip(media_files, media_types)):
+                    # 创建临时PostMedia实例用于保存文件
+                    temp_media = PostMedia(post=post, media_type=media_type, order=i)
+                    # 保存文件到磁盘（文件IO是必须的，无法避免）
+                    temp_media.file.save(media_file.name, media_file, save=False)
+                    # 添加到批量创建列表
+                    media_objects.append(temp_media)
+                
+                # 使用bulk_create批量创建数据库记录
+                # 将N次数据库INSERT操作合并为1次，大幅减少数据库IO
+                PostMedia.objects.bulk_create(media_objects)
         
         return post
 

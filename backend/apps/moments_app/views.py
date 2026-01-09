@@ -73,12 +73,8 @@ class PostViewSet(viewsets.ModelViewSet):
         media_files = request.FILES.getlist('media_files')
         media_types = request.data.getlist('media_types')
         
-        # 打印调试信息
-        print(f"收到的媒体文件数量: {len(media_files)}")
-        print(f"收到的媒体类型: {media_types}")
-        print(f"收到的content: {request.data.get('content')}")
-        print(f"收到的is_pinned: {request.data.get('is_pinned')}")
-        print(f"收到的tags: {request.data.get('tags')}")
+        # 调试信息已移除，减少IO操作
+        # 如需调试，请使用Django的logging模块
         
         # 验证媒体文件数量
         if len(media_files) > 9:
@@ -131,7 +127,7 @@ class PostViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_201_CREATED
             )
         # 验证失败，返回错误信息
-        print(f"序列化器验证失败: {serializer.errors}")
+        # 调试信息已移除，减少IO操作
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def update(self, request, *args, **kwargs):

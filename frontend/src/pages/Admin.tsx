@@ -323,32 +323,9 @@ const Admin: React.FC = () => {
     }
   };
 
-  // 格式化配速字段：将 m:ss 转换为 mm:ss，移除 /km 后缀
-  const formatPace = (pace: string | null | undefined): string => {
-    if (!pace || typeof pace !== 'string') {
-      return '';
-    }
-    let formatted = pace.trim();
-    // 移除 /km 后缀（不区分大小写）
-    formatted = formatted.replace(/\/km/gi, '').trim();
-    // 检查格式是否为 m:ss 或 mm:ss
-    if (/^([0-9]{1,2}):([0-5][0-9])$/.test(formatted)) {
-      const parts = formatted.split(':');
-      const minutes = parts[0];
-      const seconds = parts[1];
-      // 确保分钟数是两位数格式（例如：5:30 -> 05:30）
-      const minutesPadded = minutes.padStart(2, '0');
-      return `${minutesPadded}:${seconds}`;
-    }
-    return formatted; // 如果格式不正确，返回原值，让验证规则处理
-  };
-
   const handleMarathonSubmit = async (values: any) => {
     setLoading(true);
     try {
-      // 格式化配速字段
-      const formattedPace = formatPace(values.pace);
-      
       const formData = new FormData();
       formData.append('event_name', values.event_name);
       formData.append('event_date', values.event_date.format('YYYY-MM-DD'));
@@ -358,7 +335,7 @@ const Admin: React.FC = () => {
       formData.append('district', values.district || '');
       formData.append('event_type', values.event_type);
       formData.append('finish_time', values.finish_time || '');
-      formData.append('pace', formattedPace);
+      formData.append('pace', values.pace || '');
       formData.append('description', values.description || '');
       formData.append('event_log', values.event_log || '');
 
@@ -1344,18 +1321,26 @@ const Admin: React.FC = () => {
                 label="配速"
                 rules={[
                   {
-                    pattern: /^([0-9]|[0-5][0-9]):([0-5][0-9])$/,
+                    required: false,
+                    pattern: /^([0-5][0-9]):([0-5][0-9])$/,
                     message: '配速格式错误，请输入 mm:ss 格式（例如：05:30），表示每公里分钟:秒',
                   },
                 ]}
+                getValueFromEvent={(e) => {
+                  // 输入时实时规范化：移除 /km 后缀
+                  return e.target.value.replace(/\/km/gi, '').trim();
+                }}
               >
                 <Input 
                   placeholder="例如：05:30（表示每公里5分30秒）" 
-                  onChange={(e) => {
-                    // 自动移除 /km 后缀（如果用户输入了）
-                    const value = e.target.value.replace(/\/km/gi, '').trim();
-                    if (value !== e.target.value) {
-                      e.target.value = value;
+                  maxLength={5}
+                  onBlur={(e) => {
+                    // 失焦时自动补零：将 m:ss 格式转换为 mm:ss
+                    const value = e.target.value.trim();
+                    if (value && /^([0-9]):([0-5][0-9])$/.test(value)) {
+                      const parts = value.split(':');
+                      const normalized = `${parts[0].padStart(2, '0')}:${parts[1]}`;
+                      form.setFieldsValue({ pace: normalized });
                     }
                   }}
                 />
