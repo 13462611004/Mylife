@@ -108,6 +108,7 @@ class MarathonRegistration(models.Model):
         ('won', '已中签'),
         ('lost', '未中签'),
         ('abandoned', '已弃赛'),
+        ('waitlist', '候补中'),
     ]
     
     # 赛事类型枚举
@@ -153,7 +154,7 @@ class MarathonRegistration(models.Model):
     class Meta:
         verbose_name = "报名赛事"
         verbose_name_plural = "报名赛事"
-        ordering = ['event_date']  # 按赛事日期升序排列
+        ordering = ['event_date']  # 按赛事日期升序排列（距离今天最近的日期在上面）
         # 添加数据库索引以加速查询
         indexes = [
             models.Index(fields=['event_date']),  # 按赛事日期索引

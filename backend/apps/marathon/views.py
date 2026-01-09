@@ -1,18 +1,18 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 from .models import Marathon, Province, City, District, MarathonRegistration
 from .serializers import MarathonSerializer, MarathonListSerializer, MarathonRegistrationSerializer, MarathonRegistrationListSerializer
+from .permissions import IsAdminOrReadOnly
 from django.conf import settings
 import os
 
 """马拉松赛事视图"""
 class MarathonListView(APIView):
     """马拉松赛事列表视图"""
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAdminOrReadOnly]
     
     # 暂时禁用缓存以便调试
     # @method_decorator(cache_page(settings.CACHE_TIMEOUT['MEDIUM']))  # 缓存30分钟
@@ -36,7 +36,7 @@ class MarathonListView(APIView):
 
 class MarathonDetail(APIView):
     """获取单个马拉松赛事详情"""
-    permission_classes = [IsAuthenticatedOrReadOnly]  # 允许游客读取
+    permission_classes = [IsAdminOrReadOnly]  # 允许游客读取
 
     def get_object(self, pk):
         """获取指定ID的马拉松赛事"""
@@ -83,7 +83,7 @@ class MarathonDetail(APIView):
 
 class UploadCertificate(APIView):
     """上传完赛证书"""
-    permission_classes = [IsAuthenticatedOrReadOnly]  # 允许游客读取
+    permission_classes = [IsAdminOrReadOnly]  # 允许游客读取
 
     def get_object(self, pk):
         """获取指定ID的马拉松赛事"""
@@ -118,7 +118,7 @@ class UploadCertificate(APIView):
 """级联选择API视图"""
 class ProvinceList(APIView):
     """获取所有省份列表"""
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAdminOrReadOnly]
 
     def get(self, request):
         """获取所有省份列表"""
@@ -132,7 +132,7 @@ class ProvinceList(APIView):
 
 class CityListByProvince(APIView):
     """根据省份获取城市列表"""
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAdminOrReadOnly]
 
     def get(self, request):
         """获取指定省份下的城市列表"""
@@ -150,7 +150,7 @@ class CityListByProvince(APIView):
 
 class DistrictListByCity(APIView):
     """根据城市获取区县列表"""
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAdminOrReadOnly]
 
     def get(self, request):
         """获取指定城市下的区县列表"""
@@ -169,7 +169,7 @@ class DistrictListByCity(APIView):
 """马拉松报名赛事视图"""
 class MarathonRegistrationListView(APIView):
     """马拉松报名赛事列表视图"""
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAdminOrReadOnly]
     
     # 暂时禁用缓存以便调试
     # @method_decorator(cache_page(settings.CACHE_TIMEOUT['MEDIUM']))  # 缓存30分钟
@@ -191,7 +191,7 @@ class MarathonRegistrationListView(APIView):
 
 class MarathonRegistrationDetail(APIView):
     """获取单个报名赛事详情"""
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAdminOrReadOnly]
 
     def get_object(self, pk):
         """获取指定ID的报名赛事"""

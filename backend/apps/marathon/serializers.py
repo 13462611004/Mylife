@@ -40,7 +40,7 @@ class MarathonRegistrationListSerializer(serializers.ModelSerializer):
         model = MarathonRegistration
         fields = [
             'id', 'event_name', 'event_date', 'location',
-            'province', 'city', 'event_type', 'registration_status'
+            'province', 'city', 'event_type', 'registration_status', 'registration_fee'
         ]
 
 """马拉松报名赛事完整序列化器（用于详情视图）"""

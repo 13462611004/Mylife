@@ -323,9 +323,32 @@ const Admin: React.FC = () => {
     }
   };
 
+  // 格式化配速字段：将 m:ss 转换为 mm:ss，移除 /km 后缀
+  const formatPace = (pace: string | null | undefined): string => {
+    if (!pace || typeof pace !== 'string') {
+      return '';
+    }
+    let formatted = pace.trim();
+    // 移除 /km 后缀（不区分大小写）
+    formatted = formatted.replace(/\/km/gi, '').trim();
+    // 检查格式是否为 m:ss 或 mm:ss
+    if (/^([0-9]{1,2}):([0-5][0-9])$/.test(formatted)) {
+      const parts = formatted.split(':');
+      const minutes = parts[0];
+      const seconds = parts[1];
+      // 确保分钟数是两位数格式（例如：5:30 -> 05:30）
+      const minutesPadded = minutes.padStart(2, '0');
+      return `${minutesPadded}:${seconds}`;
+    }
+    return formatted; // 如果格式不正确，返回原值，让验证规则处理
+  };
+
   const handleMarathonSubmit = async (values: any) => {
     setLoading(true);
     try {
+      // 格式化配速字段
+      const formattedPace = formatPace(values.pace);
+      
       const formData = new FormData();
       formData.append('event_name', values.event_name);
       formData.append('event_date', values.event_date.format('YYYY-MM-DD'));
@@ -335,7 +358,7 @@ const Admin: React.FC = () => {
       formData.append('district', values.district || '');
       formData.append('event_type', values.event_type);
       formData.append('finish_time', values.finish_time || '');
-      formData.append('pace', values.pace || '');
+      formData.append('pace', formattedPace);
       formData.append('description', values.description || '');
       formData.append('event_log', values.event_log || '');
 
@@ -571,6 +594,15 @@ const Admin: React.FC = () => {
   const handleRegistrationSubmit = async (values: any) => {
     setLoading(true);
     try {
+      // 处理报名费用：如果是空字符串或undefined，转换为null；否则转换为数字
+      let registrationFee = null;
+      if (values.registration_fee !== undefined && values.registration_fee !== null && values.registration_fee !== '') {
+        const fee = parseFloat(values.registration_fee);
+        if (!isNaN(fee)) {
+          registrationFee = fee;
+        }
+      }
+      
       const data = {
         event_name: values.event_name,
         event_date: values.event_date.format('YYYY-MM-DD'),
@@ -581,7 +613,7 @@ const Admin: React.FC = () => {
         event_type: values.event_type,
         registration_status: values.registration_status,
         registration_date: values.registration_date ? values.registration_date.format('YYYY-MM-DD') : null,
-        registration_fee: values.registration_fee || null,
+        registration_fee: registrationFee,
         draw_date: values.draw_date ? values.draw_date.format('YYYY-MM-DD') : null,
         transport: values.transport || null,
         accommodation: values.accommodation || null,
@@ -599,8 +631,26 @@ const Admin: React.FC = () => {
       fetchRegistrations();
     } catch (error: any) {
       console.error('提交错误:', error);
-      const errorMsg = error.response?.data || error.message || '未知错误';
-      message.error(`操作失败: ${JSON.stringify(errorMsg)}`);
+      let errorMsg = '未知错误';
+      if (error.response?.data) {
+        // 如果是对象，尝试提取错误信息
+        if (typeof error.response.data === 'object') {
+          const errors = [];
+          for (const [key, value] of Object.entries(error.response.data)) {
+            if (Array.isArray(value)) {
+              errors.push(`${key}: ${value.join(', ')}`);
+            } else {
+              errors.push(`${key}: ${value}`);
+            }
+          }
+          errorMsg = errors.join('; ') || JSON.stringify(error.response.data);
+        } else {
+          errorMsg = error.response.data;
+        }
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      message.error(`操作失败: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -624,6 +674,13 @@ const Admin: React.FC = () => {
       dataIndex: 'event_date',
       key: 'event_date',
       width: 120,
+      defaultSortOrder: 'ascend' as const,
+      sorter: (a: any, b: any) => {
+        const dateA = dayjs(a.event_date);
+        const dateB = dayjs(b.event_date);
+        // 升序：距离今天最近的日期（最早的未来日期）在上面
+        return dateA.valueOf() - dateB.valueOf();
+      },
       render: (text: string) => dayjs(text).format('YYYY-MM-DD'),
     },
     {
@@ -673,6 +730,7 @@ const Admin: React.FC = () => {
           'won': { text: '已中签', color: 'success' },
           'lost': { text: '未中签', color: 'error' },
           'abandoned': { text: '已弃赛', color: 'warning' },
+          'waitlist': { text: '候补中', color: 'orange' },
         };
         const statusInfo = statusMap[status] || { text: status, color: 'default' };
         return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
@@ -683,7 +741,14 @@ const Admin: React.FC = () => {
       dataIndex: 'registration_fee',
       key: 'registration_fee',
       width: 100,
-      render: (fee: number | null) => fee ? `¥${fee}` : '-',
+      render: (fee: number | string | null) => {
+        if (fee === null || fee === undefined || fee === '') {
+          return '-';
+        }
+        // 处理 Decimal 类型（可能是字符串格式）
+        const feeNum = typeof fee === 'string' ? parseFloat(fee) : fee;
+        return !isNaN(feeNum) ? `¥${feeNum.toFixed(2)}` : '-';
+      },
     },
     {
       title: '操作',
@@ -837,12 +902,12 @@ const Admin: React.FC = () => {
       <Card>
         <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ margin: 0 }}>管理后台</h2>
-          <Button 
-            icon={<SettingOutlined />} 
-            onClick={() => setPasswordModalVisible(true)}
-          >
-            修改密码
-          </Button>
+            <Button 
+              icon={<SettingOutlined />} 
+              onClick={() => setPasswordModalVisible(true)}
+            >
+              修改密码
+            </Button>
         </div>
         <Tabs defaultActiveKey="1">
           <Tabs.TabPane tab="马拉松赛事" key="1">
@@ -856,6 +921,7 @@ const Admin: React.FC = () => {
               dataSource={marathons}
               rowKey="id"
               loading={loading}
+              scroll={{ x: 1400 }}
               pagination={{
                 pageSize: 10,
                 showSizeChanger: true,
@@ -874,6 +940,7 @@ const Admin: React.FC = () => {
               dataSource={registrations}
               rowKey="id"
               loading={loading}
+              scroll={{ x: 1300 }}
               pagination={{
                 pageSize: 10,
                 showSizeChanger: true,
@@ -1275,8 +1342,23 @@ const Admin: React.FC = () => {
               <Form.Item
                 name="pace"
                 label="配速"
+                rules={[
+                  {
+                    pattern: /^([0-9]|[0-5][0-9]):([0-5][0-9])$/,
+                    message: '配速格式错误，请输入 mm:ss 格式（例如：05:30），表示每公里分钟:秒',
+                  },
+                ]}
               >
-                <Input placeholder="例如：5:30/km" />
+                <Input 
+                  placeholder="例如：05:30（表示每公里5分30秒）" 
+                  onChange={(e) => {
+                    // 自动移除 /km 后缀（如果用户输入了）
+                    const value = e.target.value.replace(/\/km/gi, '').trim();
+                    if (value !== e.target.value) {
+                      e.target.value = value;
+                    }
+                  }}
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -1510,6 +1592,7 @@ const Admin: React.FC = () => {
                   <Option value="won">已中签</Option>
                   <Option value="lost">未中签</Option>
                   <Option value="abandoned">已弃赛</Option>
+                  <Option value="waitlist">候补中</Option>
                 </Select>
               </Form.Item>
             </Col>

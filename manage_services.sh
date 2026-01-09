@@ -229,6 +229,54 @@ create_superuser() {
     python manage.py createsuperuser
 }
 
+# 清理前端缓存
+clean_cache() {
+    echo -e "${YELLOW}清理前端缓存...${NC}"
+    cd $FRONTEND_DIR
+    
+    if [ -d "node_modules/.cache" ]; then
+        CACHE_SIZE=$(du -sh node_modules/.cache 2>/dev/null | cut -f1)
+        echo -e "${YELLOW}当前缓存大小: ${CACHE_SIZE}${NC}"
+        rm -rf node_modules/.cache
+        echo -e "${GREEN}✓ 前端缓存已清理${NC}"
+        echo -e "${GREEN}释放空间: ${CACHE_SIZE}${NC}"
+    else
+        echo -e "${YELLOW}○ 缓存目录不存在，无需清理${NC}"
+    fi
+    
+    # 同时清理build目录（如果存在）
+    if [ -d "build" ]; then
+        BUILD_SIZE=$(du -sh build 2>/dev/null | cut -f1)
+        read -p "是否清理build目录 (${BUILD_SIZE})? [y/N]: " confirm
+        if [[ $confirm =~ ^[Yy]$ ]]; then
+            rm -rf build
+            echo -e "${GREEN}✓ build目录已清理${NC}"
+        fi
+    fi
+}
+
+# 监控IO使用情况
+monitor_io() {
+    echo -e "${YELLOW}启动IO监控...${NC}"
+    echo -e "${YELLOW}按 Ctrl+C 退出监控${NC}"
+    echo ""
+    
+    if command -v iotop >/dev/null 2>&1; then
+        # 使用iotop监控（需要root权限）
+        iotop -o -d 2
+    else
+        # 使用iostat作为备选方案
+        if command -v iostat >/dev/null 2>&1; then
+            echo "使用iostat监控IO..."
+            iostat -x 2
+        else
+            echo -e "${RED}错误: iotop和iostat都未安装${NC}"
+            echo "请先安装: yum install -y iotop sysstat"
+            exit 1
+        fi
+    fi
+}
+
 # 显示帮助信息
 show_help() {
     echo "SOLO 项目服务管理脚本"
@@ -245,6 +293,8 @@ show_help() {
     echo "  logs        查看日志"
     echo "  migrate     执行数据库迁移"
     echo "  admin       创建超级管理员"
+    echo "  clean-cache 清理前端缓存（释放磁盘空间）"
+    echo "  monitor-io  监控IO使用情况（需要root权限）"
     echo "  help        显示此帮助信息"
     echo ""
     echo "示例:"
@@ -282,6 +332,12 @@ main() {
             ;;
         admin)
             create_superuser
+            ;;
+        clean-cache)
+            clean_cache
+            ;;
+        monitor-io)
+            monitor_io
             ;;
         help|--help|-h)
             show_help

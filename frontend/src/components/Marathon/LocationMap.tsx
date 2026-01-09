@@ -30,6 +30,44 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
     '香港特别行政区', '澳门特别行政区', '台湾省'
   ];
 
+  // 将数据库中的省份名称标准化为地图数据中的名称格式
+  // 地图数据中可能使用简化的名称（例如："广西" 而不是 "广西壮族自治区"）
+  const normalizeProvinceName = (province: string): string => {
+    if (!province) return province;
+    
+    // 省份名称映射：数据库名称 -> 地图数据名称
+    const provinceMap: Record<string, string> = {
+      '广西壮族自治区': '广西',
+      '西藏自治区': '西藏',
+      '新疆维吾尔自治区': '新疆',
+      '宁夏回族自治区': '宁夏',
+      '内蒙古自治区': '内蒙古',
+      '香港特别行政区': '香港',
+      '澳门特别行政区': '澳门',
+    };
+    
+    // 如果存在映射，返回映射后的名称；否则返回原名称
+    return provinceMap[province] || province;
+  };
+
+  // 将数据库中的城市名称标准化为地图数据中的名称格式
+  // 地图数据中通常不带"市"、"县"、"区"等后缀
+  const normalizeCityName = (city: string): string => {
+    if (!city) return city;
+    
+    // 移除常见的后缀
+    const suffixes = ['市', '县', '区', '自治州', '盟', '地区'];
+    let normalized = city;
+    for (const suffix of suffixes) {
+      if (normalized.endsWith(suffix)) {
+        normalized = normalized.slice(0, -suffix.length);
+        break; // 只移除一个后缀
+      }
+    }
+    
+    return normalized;
+  };
+
   const getProvinceData = () => {
     const provinceCount: Record<string, number> = {};
     
@@ -38,15 +76,21 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
     safeEvents.forEach(event => {
       const province = event.province || '未知';
       if (province !== '未知') {
-        provinceCount[province] = (provinceCount[province] || 0) + 1;
-        console.log(`省份 ${province}，当前计数：${provinceCount[province]}`);
+        // 使用标准化的省份名称
+        const normalizedProvince = normalizeProvinceName(province);
+        provinceCount[normalizedProvince] = (provinceCount[normalizedProvince] || 0) + 1;
+        console.log(`省份 ${province} -> ${normalizedProvince}，当前计数：${provinceCount[normalizedProvince]}`);
       }
     });
 
-    const result = allProvinces.map(province => ({
-      name: province,
-      value: provinceCount[province] || 0
-    }));
+    // 使用标准化的省份名称创建结果
+    const result = allProvinces.map(province => {
+      const normalizedProvince = normalizeProvinceName(province);
+      return {
+        name: normalizedProvince, // 地图数据使用标准化名称
+        value: provinceCount[normalizedProvince] || 0
+      };
+    });
     
     console.log('最终省份数据：', result);
     const provincesWithData = result.filter(p => p.value > 0);
@@ -60,56 +104,115 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
   const getCityData = (province: string) => {
     const cityCount: Record<string, number> = {};
     
+    // 将省份名称标准化以匹配数据库中的格式
+    // 因为数据库中可能存储的是完整名称（如"广西壮族自治区"），需要反向查找
+    const getOriginalProvinceName = (normalized: string): string => {
+      const reverseMap: Record<string, string> = {
+        '广西': '广西壮族自治区',
+        '西藏': '西藏自治区',
+        '新疆': '新疆维吾尔自治区',
+        '宁夏': '宁夏回族自治区',
+        '内蒙古': '内蒙古自治区',
+        '香港': '香港特别行政区',
+        '澳门': '澳门特别行政区',
+      };
+      return reverseMap[normalized] || normalized;
+    };
+    
+    const originalProvince = getOriginalProvinceName(province);
+    
     safeEvents.forEach(event => {
-      if (event.province === province && event.city) {
-        cityCount[event.city] = (cityCount[event.city] || 0) + 1;
+      // 使用标准化后的省份名称匹配
+      const eventProvinceNormalized = normalizeProvinceName(event.province || '');
+      if (eventProvinceNormalized === province && event.city) {
+        // 使用标准化的城市名称
+        const normalizedCity = normalizeCityName(event.city);
+        cityCount[normalizedCity] = (cityCount[normalizedCity] || 0) + 1;
       }
     });
 
     const result = Object.keys(cityCount).map(city => ({
-      name: city,
+      name: city, // 地图数据使用标准化名称（不带"市"等后缀）
       value: cityCount[city]
     }));
     
     console.log('城市数据生成（JSON）：', JSON.stringify(result));
+    console.log('原始省份名称：', originalProvince, '标准化后：', province);
     return result;
   };
 
-  // 判断是否为直辖市
+  // 判断是否为直辖市（支持标准化前后的名称）
   const isMunicipality = (province: string) => {
-    const municipalities = ['北京市', '天津市', '上海市', '重庆市'];
-    return municipalities.includes(province);
+    // 地图数据中的名称（标准化后）
+    const normalizedMunicipalities = ['北京', '天津', '上海', '重庆'];
+    // 数据库中的名称（完整名称）
+    const fullMunicipalities = ['北京市', '天津市', '上海市', '重庆市'];
+    return normalizedMunicipalities.includes(province) || fullMunicipalities.includes(province);
   };
 
   // 获取直辖市的区县数据
   const getDistrictData = (province: string) => {
     // 对于直辖市，地图显示的是区县级别
     // 所以需要统计每个区县的参赛次数
+    
+    // 获取原始省份名称（因为数据库中存储的是完整名称）
+    const getOriginalProvinceName = (normalized: string): string => {
+      const reverseMap: Record<string, string> = {
+        '北京': '北京市',
+        '天津': '天津市',
+        '上海': '上海市',
+        '重庆': '重庆市',
+      };
+      return reverseMap[normalized] || normalized;
+    };
+    
+    const originalProvince = getOriginalProvinceName(province);
     const districtCount: Record<string, number> = {};
     
     safeEvents.forEach(event => {
+      // 使用标准化后的省份名称匹配
+      const normalizedEventProvince = normalizeProvinceName(event.province || '');
       // 只统计该省的赛事，并且有区县数据的
-      if (event.province === province && event.district) {
-        districtCount[event.district] = (districtCount[event.district] || 0) + 1;
+      if (normalizedEventProvince === province && event.district) {
+        // 使用标准化的区县名称（移除"区"、"县"等后缀）
+        const normalizedDistrict = normalizeCityName(event.district);
+        districtCount[normalizedDistrict] = (districtCount[normalizedDistrict] || 0) + 1;
       }
     });
 
     // 转换为ECharts需要的格式
     const result = Object.keys(districtCount).map(district => ({
-      name: district, // 区县名称
+      name: district, // 地图数据使用标准化名称（不带"区"、"县"等后缀）
       value: districtCount[district]
     }));
     
     console.log('直辖市区县数据生成（JSON）：', JSON.stringify(result));
+    console.log('原始省份名称：', originalProvince, '标准化后：', province);
     return result;
   };
 
   // 获取地图配置
   const getChartOption = () => {
-    // 如果是省级地图但数据还没加载完成，返回空配置
-    if (currentLevel === 'province' && !mapLoaded) {
-      console.log('省级地图数据未加载完成，返回空配置');
-      return {};
+    // 如果地图数据还没加载完成，返回一个基本的配置，不包含 map 系列
+    if (!mapLoaded) {
+      console.log('地图数据未加载完成，返回基本配置');
+      return {
+        title: {
+          text: '地图数据加载中...',
+          left: 'center',
+          textStyle: { fontSize: 16 }
+        },
+        graphic: {
+          type: 'text',
+          left: 'center',
+          top: 'middle',
+          style: {
+            text: '正在加载地图数据...',
+            fontSize: 16,
+            fill: '#666'
+          }
+        }
+      };
     }
 
     const provinceData = getProvinceData();
@@ -176,7 +279,7 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
         {
           name: '赛事地点',
           type: 'map',
-          map: currentLevel === 'country' ? 'china' : selectedProvince,
+          map: currentLevel === 'country' ? 'china' : (selectedProvince || 'china'),
           roam: true,
           zoom: 1.2,
           label: {
@@ -207,16 +310,40 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
   // 获取某个地区的所有比赛
   const getEventsByRegion = (regionName: string): MarathonEvent[] => {
     if (currentLevel === 'country') {
-      // 全国地图级别：按省份筛选
-      return safeEvents.filter(event => event.province === regionName);
+      // 全国地图级别：按省份筛选（使用标准化名称匹配）
+      return safeEvents.filter(event => {
+        const normalizedEventProvince = normalizeProvinceName(event.province || '');
+        return normalizedEventProvince === regionName;
+      });
     } else if (currentLevel === 'province') {
       // 省级地图级别：按城市或区县筛选
-      if (isMunicipality(selectedProvince)) {
-        // 直辖市：按区县筛选
-        return safeEvents.filter(event => event.province === selectedProvince && event.district === regionName);
+      const originalProvince = (() => {
+        const reverseMap: Record<string, string> = {
+          '广西': '广西壮族自治区',
+          '西藏': '西藏自治区',
+          '新疆': '新疆维吾尔自治区',
+          '宁夏': '宁夏回族自治区',
+          '内蒙古': '内蒙古自治区',
+          '香港': '香港特别行政区',
+          '澳门': '澳门特别行政区',
+        };
+        return reverseMap[selectedProvince] || selectedProvince;
+      })();
+      
+      if (isMunicipality(originalProvince)) {
+        // 直辖市：按区县筛选（使用标准化名称匹配）
+        return safeEvents.filter(event => {
+          const normalizedEventProvince = normalizeProvinceName(event.province || '');
+          const normalizedEventDistrict = normalizeCityName(event.district || ''); // 区县也可能带后缀
+          return normalizedEventProvince === selectedProvince && normalizedEventDistrict === regionName;
+        });
       } else {
-        // 普通省份：按城市筛选
-        return safeEvents.filter(event => event.province === selectedProvince && event.city === regionName);
+        // 普通省份：按城市筛选（使用标准化名称匹配）
+        return safeEvents.filter(event => {
+          const normalizedEventProvince = normalizeProvinceName(event.province || '');
+          const normalizedEventCity = normalizeCityName(event.city || '');
+          return normalizedEventProvince === selectedProvince && normalizedEventCity === regionName;
+        });
       }
     }
     return [];
@@ -273,20 +400,44 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
       try {
         setMapLoaded(false); // 开始加载时设置为 false
         console.log('开始加载地图数据，当前级别：', currentLevel, '选中省份：', selectedProvince);
-        const echarts = await import('echarts');
+        const echartsModule = await import('echarts');
+        // echarts模块的导入方式：直接使用模块本身，不需要default
+        const echarts = echartsModule;
         
         if (currentLevel === 'country') {
           // 加载中国地图数据
           console.log('加载中国地图数据...');
+          try {
           const response = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
           const chinaJson = await response.json();
+            if (!chinaJson || !chinaJson.features) {
+              throw new Error('地图数据格式不正确');
+            }
           console.log('中国地图数据加载完成：', chinaJson);
           echarts.registerMap('china', chinaJson);
-          setMapLoaded(true); // 加载完成后设置为 true
+            setMapLoaded(true); // 只有成功注册后才设置为 true
           console.log('中国地图注册完成，mapLoaded 设置为 true');
+          } catch (fetchError) {
+            console.error('加载中国地图数据失败:', fetchError);
+            // 加载失败时不设置 mapLoaded = true，保持 false，显示加载中的提示
+            setMapLoaded(false);
+          }
         } else if (selectedProvince) {
           // 加载省份地图数据
+          // 省份代码映射：支持标准化后的名称（如"北京"、"广西"）和完整名称（如"北京市"、"广西壮族自治区"）
           const provinceCode: Record<string, string> = {
+            // 标准化名称（地图数据中使用的名称）
+            '北京': '110000', '天津': '120000', '上海': '310000', '重庆': '500000',
+            '河北': '130000', '山西': '140000', '辽宁': '210000', '吉林': '220000', '黑龙江': '230000',
+            '江苏': '320000', '浙江': '330000', '安徽': '340000', '福建': '350000', '江西': '360000', '山东': '370000',
+            '河南': '410000', '湖北': '420000', '湖南': '430000', '广东': '440000', '广西': '450000', '海南': '460000',
+            '四川': '510000', '贵州': '520000', '云南': '530000', '西藏': '540000', '陕西': '610000', '甘肃': '620000',
+            '青海': '630000', '宁夏': '640000', '新疆': '650000', '内蒙古': '150000',
+            '香港': '810000', '澳门': '820000', '台湾': '710000',
+            // 完整名称（数据库中的名称，用于兼容）
             '北京市': '110000', '天津市': '120000', '上海市': '310000', '重庆市': '500000',
             '河北省': '130000', '山西省': '140000', '辽宁省': '210000', '吉林省': '220000', '黑龙江省': '230000',
             '江苏省': '320000', '浙江省': '330000', '安徽省': '340000', '福建省': '350000', '江西省': '360000', '山东省': '370000',
@@ -299,18 +450,52 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
           const code = provinceCode[selectedProvince];
           if (code) {
             console.log(`加载省份地图数据，省份：${selectedProvince}，代码：${code}`);
+            try {
             const response = await fetch(`https://geo.datav.aliyun.com/areas_v3/bound/${code}_full.json`);
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
             const provinceJson = await response.json();
+              if (!provinceJson || !provinceJson.features) {
+                throw new Error('地图数据格式不正确');
+              }
             console.log('省份地图数据加载完成');
             console.log('地图中的所有区域名称：', provinceJson.features.map((f: any) => f.properties.name));
             echarts.registerMap(selectedProvince, provinceJson);
-            setMapLoaded(true); // 加载完成后设置为 true
+              setMapLoaded(true); // 只有成功注册后才设置为 true
             console.log('省份地图注册完成，mapLoaded 设置为 true');
+            } catch (fetchError) {
+              console.error('加载省份地图数据失败:', fetchError);
+              // 加载失败时不设置 mapLoaded = true，保持 false，显示加载中的提示
+              setMapLoaded(false);
+            }
+          } else {
+            // 如果没有找到省份代码，不设置 mapLoaded = true
+            console.warn(`未找到省份代码: ${selectedProvince}`);
+            setMapLoaded(false);
+          }
+        } else {
+          // 如果没有选中省份，尝试加载全国地图
+          try {
+            const response = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const chinaJson = await response.json();
+            if (!chinaJson || !chinaJson.features) {
+              throw new Error('地图数据格式不正确');
+            }
+            echarts.registerMap('china', chinaJson);
+            setMapLoaded(true);
+          } catch (error) {
+            console.error('加载默认地图数据失败:', error);
+            setMapLoaded(false);
           }
         }
       } catch (error) {
         console.error('加载地图数据失败:', error);
-        setMapLoaded(false); // 加载失败时设置为 false
+        // 加载失败时不设置 mapLoaded = true，保持 false，显示加载中的提示
+        setMapLoaded(false);
       }
     };
 
@@ -346,17 +531,23 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
           option={getChartOption()}
           style={{ height: '100%', width: '100%' }}
           onChartReady={onChartReady}
+          notMerge={true}
+          lazyUpdate={true}
         />
       ) : (
         <div style={{ 
           display: 'flex', 
+          flexDirection: 'column',
           justifyContent: 'center', 
           alignItems: 'center', 
           height: '100%',
-          color: '#B22A2A',
-          fontSize: '16px'
+          color: '#666',
+          fontSize: '14px'
         }}>
-          地图数据加载中...
+          <div>地图数据加载中...</div>
+          <div style={{ marginTop: '10px', fontSize: '12px', color: '#999' }}>
+            如果长时间未加载，请检查网络连接或刷新页面
+          </div>
         </div>
       )}
       
