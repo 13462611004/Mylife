@@ -14,7 +14,8 @@ class MarathonListView(APIView):
     """马拉松赛事列表视图"""
     permission_classes = [IsAuthenticatedOrReadOnly]
     
-    @method_decorator(cache_page(settings.CACHE_TIMEOUT['MEDIUM']))  # 缓存30分钟
+    # 暂时禁用缓存以便调试
+    # @method_decorator(cache_page(settings.CACHE_TIMEOUT['MEDIUM']))  # 缓存30分钟
     def get(self, request):
         """获取所有马拉松赛事"""
         # 使用select_related优化外键查询，减少SQL查询次数
@@ -170,7 +171,8 @@ class MarathonRegistrationListView(APIView):
     """马拉松报名赛事列表视图"""
     permission_classes = [IsAuthenticatedOrReadOnly]
     
-    @method_decorator(cache_page(settings.CACHE_TIMEOUT['MEDIUM']))  # 缓存30分钟
+    # 暂时禁用缓存以便调试
+    # @method_decorator(cache_page(settings.CACHE_TIMEOUT['MEDIUM']))  # 缓存30分钟
     def get(self, request):
         """获取所有报名赛事"""
         registrations = MarathonRegistration.objects.all()

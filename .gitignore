@@ -73,3 +73,7 @@ coverage/
 *.bak
 *.tmp
 .cache/
+# 前端缓存文件
+node_modules/.cache/
+*.log
+*.log.*

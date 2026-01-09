@@ -2,6 +2,7 @@ import React from 'react';
 import { Menu } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { HomeOutlined, TrophyOutlined, BarChartOutlined, MessageOutlined } from '@ant-design/icons';
+import apiClient from '../../services/axios';
 import '../../styles/Navigation.css';
 
 const Navigation: React.FC = () => {
@@ -10,9 +11,17 @@ const Navigation: React.FC = () => {
 
   const isAdminPage = location.pathname === '/admin';
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAdmin');
-    navigate('/admin/login');
+  const handleLogout = async () => {
+    try {
+      // 调用后端API清除session
+      await apiClient.post('/api/admin/logout/');
+    } catch (error) {
+      console.error('登出API调用失败:', error);
+    } finally {
+      // 无论API是否成功，都清除本地状态
+      localStorage.removeItem('isAdmin');
+      navigate('/admin/login');
+    }
   };
 
   return (
