@@ -1,0 +1,123 @@
+/* 导航栏样式 */
+
+.ant-menu-horizontal {
+  background: #FFFFFF;
+  border-bottom: 1px solid #F0F0F0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 0 24px;
+  height: 64px;
+  line-height: 64px;
+}
+
+.ant-menu-item {
+  font-size: 15px;
+  font-weight: 500;
+  color: #595959;
+  margin: 0 8px;
+  padding: 0 16px;
+  height: 64px;
+  line-height: 64px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.ant-menu-item:hover {
+  color: #1890FF;
+  background: #F0F9FF;
+  transform: translateY(-1px);
+}
+
+.ant-menu-item-selected {
+  color: #1890FF;
+  background: #E6F7FF;
+  font-weight: 600;
+}
+
+.ant-menu-item-icon {
+  font-size: 18px;
+  margin-right: 8px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .ant-menu-horizontal {
+    padding: 0 8px;
+    height: 48px;
+    line-height: 48px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .ant-menu-horizontal::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .ant-menu-item {
+    font-size: 13px;
+    margin: 0 2px;
+    padding: 0 8px;
+    height: 48px;
+    line-height: 48px;
+    flex-shrink: 0;
+  }
+
+  .nav-item-text {
+    display: inline-block;
+  }
+  
+  .ant-menu-item-icon {
+    font-size: 14px;
+    margin-right: 4px;
+  }
+
+  @media (max-width: 480px) {
+    .nav-item-text {
+      display: none;
+    }
+    
+    .ant-menu-item {
+      padding: 0 12px;
+    }
+
+    .ant-menu-item-icon {
+      margin-right: 0;
+    }
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .ant-menu-horizontal {
+    padding: 0 20px;
+  }
+  
+  .ant-menu-item {
+    font-size: 15px;
+    margin: 0 6px;
+    padding: 0 14px;
+  }
+  
+  .ant-menu-item-icon {
+    font-size: 17px;
+    margin-right: 7px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ant-menu-horizontal {
+    padding: 0 24px;
+  }
+  
+  .ant-menu-item {
+    font-size: 15px;
+    margin: 0 8px;
+    padding: 0 16px;
+  }
+  
+  .ant-menu-item-icon {
+    font-size: 18px;
+    margin-right: 8px;
+  }
+}

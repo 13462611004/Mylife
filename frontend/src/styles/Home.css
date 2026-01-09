@@ -1,0 +1,146 @@
+/* 关于页面样式 - 极简风格 */
+
+.home-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-page);
+  background-color: #FAF9F6;
+  min-height: calc(100vh - 64px - 70px);
+}
+
+/* 个人简介卡片 */
+.intro-card {
+  background: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  margin-bottom: var(--spacing-card);
+  padding: var(--spacing-element);
+}
+
+.intro-card .ant-card-head {
+  border-bottom: 1px solid #F0F0F0;
+  padding: 16px 24px;
+}
+
+.intro-card .ant-card-head-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--about-accent);
+}
+
+.intro-card p {
+  color: #595959;
+  font-size: 15px;
+  line-height: 1.8;
+  margin-bottom: 12px;
+}
+
+/* 数据概览区域 */
+.stats-section {
+  margin-top: var(--spacing-card);
+}
+
+.stats-section h2 {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--about-accent);
+  margin-bottom: var(--spacing-element);
+  padding-left: 8px;
+  border-left: 3px solid var(--about-secondary);
+}
+
+.stats-section .ant-card {
+  background: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.stats-section .ant-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.stats-section .ant-statistic-title {
+  font-size: 14px;
+  color: #8C8C8C;
+  margin-bottom: 8px;
+}
+
+.stats-section .ant-statistic-content {
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.stats-section .ant-statistic-content-prefix {
+  margin-right: 8px;
+  font-size: 24px;
+}
+
+.stats-section .ant-statistic-content-suffix {
+  font-size: 14px;
+  margin-left: 4px;
+  color: #8C8C8C;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .home-container {
+    padding: 16px;
+  }
+  
+  .intro-card {
+    margin-bottom: 16px;
+  }
+  
+  .stats-section {
+    margin-top: 16px;
+  }
+  
+  .stats-section h2 {
+    font-size: 18px;
+  }
+  
+  .stats-section .ant-statistic-content {
+    font-size: 24px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .home-container {
+    padding: 20px;
+  }
+  
+  .intro-card {
+    margin-bottom: 20px;
+  }
+  
+  .stats-section {
+    margin-top: 20px;
+  }
+  
+  .stats-section .ant-statistic-content {
+    font-size: 26px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-container {
+    padding: 28px;
+  }
+  
+  .intro-card {
+    margin-bottom: 24px;
+  }
+  
+  .stats-section {
+    margin-top: 24px;
+  }
+  
+  .stats-section .ant-statistic-content {
+    font-size: 28px;
+  }
+}

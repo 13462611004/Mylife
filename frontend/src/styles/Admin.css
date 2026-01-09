@@ -1,0 +1,381 @@
+/* 管理页面样式 - 综合风格 */
+
+.admin-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--spacing-page);
+  background-color: #FAFAFA;
+  min-height: calc(100vh - 64px - 70px);
+}
+
+/* 标签页样式 */
+.admin-tabs {
+  background: #FFFFFF;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.admin-tabs .ant-tabs-nav {
+  margin-bottom: 0;
+  padding: 0 24px;
+  background: #FAFAFA;
+}
+
+.admin-tabs .ant-tabs-tab {
+  font-size: 15px;
+  font-weight: 500;
+  padding: 16px 20px;
+  transition: all 0.2s ease;
+}
+
+.admin-tabs .ant-tabs-tab:hover {
+  color: #1890FF;
+  transform: translateY(-1px);
+}
+
+.admin-tabs .ant-tabs-tab-active {
+  color: #1890FF;
+  font-weight: 600;
+}
+
+.admin-tabs .ant-tabs-ink-bar {
+  background-color: #1890FF;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.admin-tabs .ant-tabs-content {
+  padding: 24px;
+}
+
+/* 统计卡片区域 */
+.admin-stats {
+  margin-bottom: var(--spacing-card);
+}
+
+.admin-stats .ant-card {
+  background: linear-gradient(135deg, #1890FF 0%, #40A9FF 100%);
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.admin-stats .ant-card:hover {
+  box-shadow: 0 6px 20px rgba(24, 144, 255, 0.3);
+  transform: translateY(-4px);
+}
+
+.admin-stats .ant-statistic-title {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.admin-stats .ant-statistic-content {
+  color: #FFFFFF;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.admin-stats .ant-statistic-content-prefix {
+  margin-right: 8px;
+  font-size: 28px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.admin-stats .ant-statistic-content-suffix {
+  font-size: 16px;
+  margin-left: 4px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 搜索和筛选区域 */
+.admin-filter {
+  background: #FFFFFF;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+  margin-bottom: var(--spacing-card);
+}
+
+.admin-filter .ant-form-item {
+  margin-bottom: 0;
+}
+
+.admin-filter .ant-input,
+.admin-filter .ant-picker {
+  border-radius: var(--radius-input);
+}
+
+/* 表格样式 */
+.admin-table {
+  background: #FFFFFF;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.admin-table .ant-table {
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.admin-table .ant-table-thead > tr > th {
+  background: #F5F5F5;
+  color: #262626;
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 2px solid #E8E8E8;
+}
+
+.admin-table .ant-table-tbody > tr:hover > td {
+  background-color: #FAFAFA;
+}
+
+.admin-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid #F0F0F0;
+  font-size: 14px;
+  color: #262626;
+}
+
+/* 按钮样式 */
+.admin-btn {
+  background: #1890FF;
+  border: none;
+  border-radius: var(--radius-button);
+  color: #FFFFFF;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.admin-btn:hover {
+  background: #40A9FF;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  color: #FFFFFF;
+}
+
+.admin-btn-success {
+  background: #52C41A;
+  border: none;
+  border-radius: var(--radius-button);
+  color: #FFFFFF;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.admin-btn-success:hover {
+  background: #73D13D;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.3);
+  color: #FFFFFF;
+}
+
+.admin-btn-danger {
+  background: #FF4D4F;
+  border: none;
+  border-radius: var(--radius-button);
+  color: #FFFFFF;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.admin-btn-danger:hover {
+  background: #FF7875;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.3);
+  color: #FFFFFF;
+}
+
+.admin-btn-secondary {
+  background: #FFFFFF;
+  border: 1px solid #D9D9D9;
+  border-radius: var(--radius-button);
+  color: #595959;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.admin-btn-secondary:hover {
+  border-color: #1890FF;
+  color: #1890FF;
+  transform: translateY(-2px);
+}
+
+/* 标签样式 */
+.admin-tag {
+  border-radius: 4px;
+  font-size: 13px;
+  padding: 4px 12px;
+  font-weight: 500;
+}
+
+.admin-tag-success {
+  background: #F6FFED;
+  color: #52C41A;
+  border: 1px solid #B7EB8F;
+}
+
+.admin-tag-warning {
+  background: #FFFBE6;
+  color: #FAAD14;
+  border: 1px solid #FFE58F;
+}
+
+.admin-tag-error {
+  background: #FFF1F0;
+  color: #FF4D4F;
+  border: 1px solid #FFA39E;
+}
+
+.admin-tag-default {
+  background: #F5F5F5;
+  color: #8C8C8C;
+  border: 1px solid #D9D9D9;
+}
+
+/* 模态框样式 */
+.admin-modal .ant-modal-header {
+  border-bottom: 1px solid #F0F0F0;
+  padding: 20px 24px;
+}
+
+.admin-modal .ant-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.admin-modal .ant-modal-body {
+  padding: 24px;
+}
+
+.admin-modal .ant-form-item-label > label {
+  color: #595959;
+  font-weight: 500;
+}
+
+/* 上传区域样式 */
+.admin-upload {
+  border: 2px dashed #D9D9D9;
+  border-radius: var(--radius-card);
+  padding: 40px;
+  text-align: center;
+  background: #FAFAFA;
+  transition: all 0.3s ease;
+}
+
+.admin-upload:hover {
+  border-color: #1890FF;
+  background: #F0F9FF;
+}
+
+.admin-upload-icon {
+  font-size: 48px;
+  color: #D9D9D9;
+  margin-bottom: 16px;
+}
+
+.admin-upload-text {
+  color: #8C8C8C;
+  font-size: 14px;
+}
+
+.admin-upload-hint {
+  color: #BFBFBF;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+/* 朋友圈工具栏（搜索 + 日期 + 按钮）移动端适配 */
+.admin-moments-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .admin-moments-toolbar {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .admin-moments-toolbar .ant-input-search,
+  .admin-moments-toolbar .ant-picker-range,
+  .admin-moments-toolbar .ant-btn {
+    width: 100%;
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .admin-container {
+    padding: 16px;
+  }
+  
+  .admin-tabs .ant-tabs-tab {
+    font-size: 14px;
+    padding: 12px 16px;
+  }
+  
+  .admin-tabs .ant-tabs-content {
+    padding: 16px;
+  }
+  
+  .admin-filter {
+    padding: 16px;
+  }
+  
+  .admin-stats .ant-statistic-content {
+    font-size: 24px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .admin-container {
+    padding: 20px;
+  }
+  
+  .admin-tabs .ant-tabs-tab {
+    font-size: 15px;
+    padding: 14px 18px;
+  }
+  
+  .admin-tabs .ant-tabs-content {
+    padding: 20px;
+  }
+  
+  .admin-filter {
+    padding: 18px;
+  }
+  
+  .admin-stats .ant-statistic-content {
+    font-size: 28px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-container {
+    padding: 28px;
+  }
+  
+  .admin-tabs .ant-tabs-tab {
+    font-size: 15px;
+    padding: 16px 20px;
+  }
+  
+  .admin-tabs .ant-tabs-content {
+    padding: 24px;
+  }
+  
+  .admin-filter {
+    padding: 20px;
+  }
+  
+  .admin-stats .ant-statistic-content {
+    font-size: 32px;
+  }
+}

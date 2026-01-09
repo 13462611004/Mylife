@@ -1,0 +1,139 @@
+/* 通用页面动画样式 */
+
+/* ==================== 页面容器动画 ==================== */
+.page-container {
+  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==================== 卡片动画 ==================== */
+.card-entrance {
+  animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+}
+
+.card-entrance:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.card-entrance:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.card-entrance:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.card-entrance:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ==================== 列表项动画 ==================== */
+.list-item-entrance {
+  animation: slideInLeft 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+}
+
+.list-item-entrance:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.list-item-entrance:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.list-item-entrance:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.list-item-entrance:nth-child(4) {
+  animation-delay: 0.25s;
+}
+
+.list-item-entrance:nth-child(5) {
+  animation-delay: 0.3s;
+}
+
+.list-item-entrance:nth-child(n+6) {
+  animation-delay: 0.35s;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ==================== 标签页切换动画 ==================== */
+.tab-content {
+  animation: slideInRight 0.4s cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ==================== 淡入动画 ==================== */
+.fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ==================== 悬停效果 ==================== */
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.hover-3d {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform-style: preserve-3d;
+}
+
+.hover-3d:hover {
+  transform: translateY(-8px) rotateX(2deg) rotateY(-2deg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}

@@ -1,0 +1,1153 @@
+/* 长路未央页面样式 - 活跃风格 */
+
+/* ==================== 色彩系统 ==================== */
+:root {
+  /* 主色系 - 运动活力色 */
+  --color-primary: #FF6B35;
+  --color-primary-light: #FF8C61;
+  --color-primary-dark: #E55A2B;
+
+  /* 辅助色 - 激情红 */
+  --color-secondary: #B22A2A;
+  --color-secondary-light: #D63031;
+  --color-secondary-dark: #8B211F;
+
+  /* 强调色 - 活力黄 */
+  --color-accent: #FFC107;
+  --color-accent-light: #FFD54F;
+  --color-accent-dark: #FFA000;
+
+  /* 功能色 */
+  --color-success: #52C41A;
+  --color-warning: #FAAD14;
+  --color-error: #FF4D4F;
+  --color-info: #1890FF;
+
+  /* 渐变色系 */
+  --gradient-energy: linear-gradient(135deg, #FF6B35 0%, #FF8C61 50%, #FFC107 100%);
+  --gradient-fire: linear-gradient(135deg, #B22A2A 0%, #FF6B35 50%, #FF8C61 100%);
+  --gradient-sunset: linear-gradient(135deg, #FF6B35 0%, #FFC107 100%);
+  --gradient-bg-subtle: linear-gradient(180deg, #FFF8F5 0%, #FFFFFF 100%);
+  --gradient-bg-dynamic: linear-gradient(135deg, #FFF8F5 0%, #FFE5D9 50%, #FFF0E8 100%);
+
+  /* 中性色系 */
+  --color-text-primary: #262626;
+  --color-text-secondary: #595959;
+  --color-text-tertiary: #8C8C8C;
+  --color-text-disabled: #BFBFBF;
+
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F5F5F5;
+  --color-bg-tertiary: #FAFAFA;
+
+  /* 阴影系统 */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.16);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.2);
+  --shadow-primary: 0 4px 12px rgba(255, 107, 53, 0.3);
+  --shadow-secondary: 0 4px 12px rgba(178, 42, 42, 0.3);
+  --shadow-accent: 0 4px 12px rgba(255, 193, 7, 0.3);
+
+  /* 字体系统 */
+  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-number: 'Roboto Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+
+  /* 字体大小层级 */
+  --font-size-h1: 36px;
+  --font-size-h2: 28px;
+  --font-size-h3: 22px;
+  --font-size-h4: 20px;
+  --font-size-lg: 16px;
+  --font-size-md: 14px;
+  --font-size-sm: 13px;
+  --font-size-xs: 12px;
+
+  /* 行高系统 */
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.8;
+  --line-height-loose: 2.0;
+
+  /* 字重 */
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-black: 800;
+
+  /* 间距系统 */
+  --spacing-unit: 8px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+  --spacing-element: 20px;
+  --spacing-section: 40px;
+  --spacing-page: 32px;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-card: 12px;
+  --radius-button: 6px;
+
+  /* 缓动函数 */
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* ==================== 页面容器 ==================== */
+.marathon-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--spacing-page);
+  background: var(--gradient-bg-subtle);
+  min-height: calc(100vh - 64px - 70px);
+  position: relative;
+  overflow: hidden;
+  animation: fadeInUp 0.6s var(--ease-out);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 动态渐变背景 */
+.marathon-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(-45deg, #FFF8F5, #FFE5D9, #FFF0E8, #FFFFFF, #FFE5D9);
+  background-size: 500% 500%;
+  animation: gradientBG 20s ease infinite;
+  z-index: -1;
+}
+
+@keyframes gradientBG {
+  0% {
+    background-position: 0% 50%;
+  }
+  25% {
+    background-position: 100% 50%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  75% {
+    background-position: 0% 100%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 运动轨迹纹理 */
+.marathon-container::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 107, 53, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(178, 42, 42, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(255, 193, 7, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 30% 80%, rgba(255, 107, 53, 0.02) 0%, transparent 40%),
+    radial-gradient(circle at 70% 20%, rgba(178, 42, 42, 0.02) 0%, transparent 40%);
+  pointer-events: none;
+  z-index: -1;
+  animation: textureMove 30s ease-in-out infinite;
+}
+
+@keyframes textureMove {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+/* 添加运动轨迹线条 */
+.marathon-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.marathon-container .motion-trail {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.6;
+}
+
+.marathon-container .motion-trail::before {
+  content: '';
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background: 
+    linear-gradient(90deg, transparent 0%, rgba(255, 107, 53, 0.02) 50%, transparent 100%),
+    linear-gradient(0deg, transparent 0%, rgba(255, 107, 53, 0.02) 50%, transparent 100%);
+  background-size: 100px 100px;
+  animation: trailMove 60s linear infinite;
+}
+
+@keyframes trailMove {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(-100px, -100px);
+  }
+}
+
+/* ==================== 统计卡片区域 ==================== */
+.marathon-stats {
+  margin-bottom: var(--spacing-card);
+}
+
+.marathon-stats .ant-card {
+  background: var(--gradient-energy);
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-primary);
+  transition: all 0.3s var(--ease-out);
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  animation: scaleIn 0.5s var(--ease-bounce) backwards;
+}
+
+.marathon-stats .ant-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.marathon-stats .ant-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.marathon-stats .ant-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 卡片悬停光影效果 */
+.marathon-stats .ant-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 70%
+  );
+  transform: rotate(45deg) translateX(-100%);
+  transition: transform 0.6s var(--ease-out);
+}
+
+.marathon-stats .ant-card:hover::before {
+  transform: rotate(45deg) translateX(100%);
+}
+
+.marathon-stats .ant-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+}
+
+.marathon-stats .ant-statistic-title {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.marathon-stats .ant-statistic-content {
+  color: #FFFFFF;
+  font-size: 32px;
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-number);
+}
+
+.marathon-stats .ant-statistic-content-prefix {
+  margin-right: var(--spacing-sm);
+  font-size: 28px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.marathon-stats .ant-statistic-content-suffix {
+  font-size: var(--font-size-md);
+  margin-left: 4px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ==================== 标签页样式 ==================== */
+.marathon-tabs .ant-tabs-nav {
+  margin-bottom: var(--spacing-element);
+}
+
+.marathon-tabs .ant-tabs-tab {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  padding: 12px 20px;
+  transition: all 0.2s var(--ease-out);
+  color: var(--color-text-secondary);
+}
+
+.marathon-tabs .ant-tabs-tab:hover {
+  color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.marathon-tabs .ant-tabs-tab-active {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.marathon-tabs .ant-tabs-ink-bar {
+  background: var(--gradient-energy);
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* 标签页切换动画 */
+.marathon-tabs .ant-tabs-tabpane {
+  animation: slideInRight 0.4s var(--ease-out);
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ==================== 按钮样式 ==================== */
+.marathon-btn {
+  background: var(--gradient-energy);
+  border: none;
+  border-radius: var(--radius-button);
+  color: #FFFFFF;
+  font-weight: var(--font-weight-medium);
+  transition: all 0.3s var(--ease-out);
+  position: relative;
+  overflow: hidden;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 107, 53, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 53, 0);
+  }
+}
+
+/* 按钮点击波纹效果 */
+.marathon-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.marathon-btn:active::after {
+  width: 300px;
+  height: 300px;
+}
+
+.marathon-btn:hover {
+  background: var(--gradient-fire);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-primary);
+  color: #FFFFFF;
+}
+
+.marathon-btn:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.marathon-btn-secondary {
+  background: #FFFFFF;
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-button);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  transition: all 0.3s var(--ease-out);
+}
+
+.marathon-btn-secondary:hover {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-primary);
+}
+
+/* ==================== 标签样式 ==================== */
+.marathon-tag {
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  padding: 4px 12px;
+  font-weight: var(--font-weight-medium);
+}
+
+.marathon-tag-success {
+  background: #E6F7FF;
+  color: #1890FF;
+  border: 1px solid #91D5FF;
+}
+
+.marathon-tag-warning {
+  background: #FFFBE6;
+  color: #FAAD14;
+  border: 1px solid #FFE58F;
+}
+
+.marathon-tag-error {
+  background: #FFF1F0;
+  color: #FF4D4F;
+  border: 1px solid #FFA39E;
+}
+
+.marathon-tag-default {
+  background: #F5F5F5;
+  color: #8C8C8C;
+  border: 1px solid #D9D9D9;
+}
+
+/* ==================== 卡片样式 ==================== */
+.marathon-card {
+  background: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
+  transition: all 0.4s var(--ease-bounce);
+  transform-style: preserve-3d;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 卡片悬停3D效果 */
+.marathon-card:hover {
+  transform: translateY(-8px) rotateX(2deg) rotateY(-2deg);
+  box-shadow: var(--shadow-xl);
+  background: linear-gradient(180deg, #FFFFFF 0%, #FFF8F5 100%);
+}
+
+.marathon-card .ant-card-head {
+  border-bottom: 1px solid #FFE5D9;
+  padding: 16px 24px;
+  background: linear-gradient(180deg, #FFF8F5 0%, #FFFFFF 100%);
+  transition: all 0.3s var(--ease-out);
+}
+
+.marathon-card:hover .ant-card-head {
+  background: linear-gradient(180deg, #FFE5D9 0%, #FFF8F5 100%);
+}
+
+.marathon-card .ant-card-head-title {
+  font-size: var(--font-size-h4);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.marathon-card .ant-card-body {
+  padding: 20px 24px;
+  animation: fadeIn 0.3s var(--ease-out);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 领奖台样式 */
+.podium-container {
+  padding: 40px 0;
+}
+
+.podium {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 20px;
+  min-height: 300px;
+  padding-bottom: 20px;
+}
+
+.podium-place {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(178, 42, 42, 0.15);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  animation: slideUp 0.6s var(--ease-bounce) backwards;
+  position: relative;
+  overflow: hidden;
+}
+
+.podium-place::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.podium-place:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(178, 42, 42, 0.35);
+}
+
+.first-place {
+  background: linear-gradient(180deg, #B22A2A 0%, #D63031 100%);
+  width: 200px;
+  height: 320px;
+  order: 2;
+  animation-delay: 0.2s;
+  box-shadow: 0 8px 24px rgba(178, 42, 42, 0.3);
+}
+
+.first-place::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 193, 7, 0.3) 0%, transparent 70%);
+  animation: glow 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes glow {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.second-place {
+  background: linear-gradient(180deg, #E74C3C 0%, #F39C12 100%);
+  width: 180px;
+  height: 260px;
+  order: 1;
+  animation-delay: 0.1s;
+}
+
+.third-place {
+  background: linear-gradient(180deg, #F39C12 0%, #F1C40F 100%);
+  width: 180px;
+  height: 200px;
+  order: 3;
+  animation-delay: 0.3s;
+}
+
+.podium-number {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 36px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 12px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.podium-number .anticon {
+  font-size: 24px;
+  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.podium-content {
+  text-align: center;
+  color: #FFFFFF;
+  padding: 0 8px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+}
+
+.podium-content .event-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #FFFFFF;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+  line-height: 1.3;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.podium-content .finish-time,
+.podium-content .location,
+.podium-content .date {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.podium-content .finish-time {
+  font-weight: 700;
+  font-size: 11px;
+  color: #FFFFFF;
+}
+
+.podium-content .anticon {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.9);
+  flex-shrink: 0;
+}
+
+/* 其他赛事列表样式 */
+.other-events {
+  margin-top: 32px;
+}
+
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.event-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #FFFFFF;
+  border: 1px solid #F0F0F0;
+  border-radius: 6px;
+  transition: all 0.3s var(--ease-out);
+  margin-bottom: 12px;
+  animation: slideInLeft 0.4s var(--ease-bounce) backwards;
+}
+
+.event-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.event-item:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.event-item:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.event-item:nth-child(4) {
+  animation-delay: 0.25s;
+}
+
+.event-item:nth-child(5) {
+  animation-delay: 0.3s;
+}
+
+.event-item:nth-child(n+6) {
+  animation-delay: 0.35s;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.event-item:hover {
+  border-color: #FF6B35;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.15);
+  transform: translateX(8px) scale(1.01);
+  background: linear-gradient(90deg, #FFFFFF 0%, #FFF8F5 100%);
+}
+
+.event-rank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: #FF6B35;
+  min-width: 36px;
+  text-align: center;
+  margin-right: 16px;
+}
+
+.event-rank .anticon {
+  font-size: 16px;
+  margin-bottom: 4px;
+  color: #FF6B35;
+}
+
+.event-details {
+  flex: 1;
+}
+
+.event-details .event-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 6px;
+}
+
+.event-info {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #8C8C8C;
+  flex-wrap: wrap;
+}
+
+.event-info span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.event-info .anticon {
+  font-size: 12px;
+  color: #8C8C8C;
+}
+
+.event-info .finish-time {
+  color: #FF6B35;
+  font-weight: 500;
+}
+
+.event-info .finish-time .anticon {
+  color: #FF6B35;
+}
+
+.event-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .marathon-container {
+    padding: 16px;
+  }
+  
+  .marathon-stats .ant-statistic-content {
+    font-size: 24px;
+  }
+  
+  .marathon-tabs .ant-tabs-tab {
+    font-size: 14px;
+    padding: 10px 16px;
+  }
+
+  .podium-container {
+    padding: 20px 0;
+  }
+
+  .podium {
+    flex-direction: row;
+    gap: 2%;
+    min-height: auto;
+    padding: 0 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .podium-place {
+    width: 28%;
+    padding: 8px;
+    flex-shrink: 1;
+    min-width: 80px;
+  }
+
+  .first-place {
+    width: 34%;
+    height: 200px;
+    min-width: 90px;
+  }
+
+  .second-place {
+    height: 160px;
+  }
+
+  .third-place {
+    height: 140px;
+  }
+
+  .podium-number {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+
+  .podium-number .anticon {
+    font-size: 18px;
+    margin-bottom: 2px;
+  }
+
+  .podium-content {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 0 4px !important;
+    text-align: center !important;
+  }
+
+  .podium-content .event-name {
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    width: 100% !important;
+    margin-bottom: 2px !important;
+    max-height: 2.4em !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+  }
+
+  .podium-content .finish-time,
+  .podium-content .location,
+  .podium-content .date {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    font-size: 9px !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+    line-height: 1.4 !important;
+    white-space: nowrap !important;
+  }
+
+  .podium-content .finish-time {
+    font-weight: 700 !important;
+    font-size: 10px !important;
+    color: #FFFFFF !important;
+  }
+
+  .podium-content .anticon {
+    font-size: 8px !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* 移动端 event-item 使用水平布局 */
+  .event-item {
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 10px 12px !important;
+    gap: 10px !important;
+  }
+  
+  .event-rank {
+    flex-direction: column !important;
+    align-items: center !important;
+    margin-right: 0 !important;
+    margin-bottom: 0 !important;
+    min-width: 36px !important;
+    text-align: center !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .event-rank .anticon {
+    margin-bottom: 2px !important;
+  }
+  
+  .event-details {
+    flex: 1 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+  
+  .event-details .event-name {
+    font-size: 13px !important;
+    margin-bottom: 4px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+  }
+  
+  .event-info {
+    flex-direction: row !important;
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+  }
+  
+  .event-info span {
+    font-size: 9px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    max-width: 80px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  
+  .event-info .anticon {
+    font-size: 9px !important;
+  }
+  
+  .event-actions {
+    width: auto !important;
+    justify-content: flex-end !important;
+    margin-top: 0 !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .marathon-container {
+    padding: 20px;
+  }
+  
+  .marathon-stats .ant-statistic-content {
+    font-size: 28px;
+  }
+  
+  .marathon-tabs .ant-tabs-tab {
+    font-size: 15px;
+    padding: 12px 18px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .marathon-container {
+    padding: 28px;
+  }
+  
+  .marathon-stats .ant-statistic-content {
+    font-size: 32px;
+  }
+  
+  .marathon-tabs .ant-tabs-tab {
+    font-size: 15px;
+    padding: 12px 20px;
+  }
+}
+
+/* 横屏模式适配 - 移动设备横屏时使用水平布局 */
+@media (max-width: 768px) and (orientation: landscape) {
+  .marathon-container {
+    padding: 12px;
+  }
+  
+  .podium-container {
+    padding: 12px 0;
+  }
+  
+  .podium {
+    gap: 3%;
+    padding: 0 12px;
+  }
+  
+  .podium-place {
+    padding: 6px;
+  }
+  
+  .first-place {
+    height: 160px;
+    min-width: 100px;
+  }
+  
+  .second-place {
+    height: 130px;
+  }
+  
+  .third-place {
+    height: 110px;
+  }
+  
+  .podium-number {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+  
+  .podium-number .anticon {
+    font-size: 16px;
+  }
+  
+  .podium-content .event-name {
+    font-size: 9px !important;
+    line-height: 1.1 !important;
+    max-height: 2.2em !important;
+  }
+  
+  .podium-content .finish-time,
+  .podium-content .location,
+  .podium-content .date {
+    font-size: 8px !important;
+    gap: 2px !important;
+  }
+  
+  .podium-content .anticon {
+    font-size: 7px !important;
+  }
+  
+  /* 横屏模式下 event-item 使用水平布局 */
+  .event-item {
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 8px 12px !important;
+    gap: 12px !important;
+  }
+  
+  .event-rank {
+    flex-direction: column !important;
+    align-items: center !important;
+    margin-right: 0 !important;
+    margin-bottom: 0 !important;
+    min-width: 40px !important;
+    text-align: center !important;
+  }
+  
+  .event-rank .anticon {
+    margin-bottom: 2px !important;
+  }
+  
+  .event-details {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+  
+  .event-details .event-name {
+    font-size: 13px !important;
+    margin-bottom: 4px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  
+  .event-info {
+    flex-direction: row !important;
+    gap: 10px !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+  }
+  
+  .event-info span {
+    font-size: 10px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    max-width: 100px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  
+  .event-info .anticon {
+    font-size: 10px !important;
+  }
+  
+  .event-actions {
+    width: auto !important;
+    justify-content: flex-end !important;
+    margin-top: 0 !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+/* 平板横屏模式优化 */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+  .event-item {
+    padding: 10px 14px;
+  }
+  
+  .event-details .event-name {
+    font-size: 14px;
+  }
+  
+  .event-info {
+    gap: 14px;
+  }
+}

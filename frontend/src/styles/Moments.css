@@ -1,0 +1,218 @@
+/* 春夏秋冬页面样式 - 平淡风格 */
+
+.moments-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-page);
+  background-color: #FAF9F6;
+  min-height: calc(100vh - 64px - 70px);
+}
+
+.moments-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.moments-loading {
+  text-align: center;
+  padding: 40px;
+}
+
+.moments-card {
+  background: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: all 0.3s ease;
+  margin-bottom: var(--spacing-card);
+  overflow: hidden;
+}
+
+.moments-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.moments-card .ant-card-body {
+  padding: 24px;
+}
+
+/* 视图切换器样式 */
+.moments-view-switcher {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 0 16px;
+}
+
+.view-switcher-text {
+  margin-left: 4px;
+}
+
+/* 时间线视图样式 */
+.moments-timeline {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.timeline-date-group {
+  margin-bottom: 32px;
+}
+
+.timeline-date-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.timeline-date-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #E8E8E8, transparent);
+}
+
+.timeline-date-label {
+  padding: 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #595959;
+  white-space: nowrap;
+}
+
+.timeline-date-weekday {
+  font-size: 14px;
+  font-weight: 400;
+  color: #8C8C8C;
+  margin-left: 8px;
+}
+
+.timeline-posts {
+  position: relative;
+  padding-left: 24px;
+}
+
+.timeline-post {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.timeline-post-line {
+  position: absolute;
+  left: -24px;
+  top: 0;
+  bottom: -24px;
+  width: 2px;
+  background: #E8E8E8;
+}
+
+.timeline-post:last-child .timeline-post-line {
+  bottom: 0;
+}
+
+.timeline-post::before {
+  content: '';
+  position: absolute;
+  left: -30px;
+  top: 8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #D2B48C;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 0 0 2px #E8E8E8;
+  z-index: 1;
+}
+
+.timeline-post-content {
+  margin-left: 0;
+}
+
+.moments-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--spacing-card);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .moments-container {
+    padding: 12px 8px;
+  }
+  
+  .moments-content {
+    padding: 16px 8px;
+  }
+  
+  .moments-card .ant-card-body {
+    padding: 12px;
+  }
+
+  .moments-timeline {
+    padding: 0 8px;
+  }
+
+  .timeline-date-label {
+    font-size: 14px;
+    padding: 0 12px;
+  }
+
+  .timeline-date-weekday {
+    font-size: 12px;
+    margin-left: 4px;
+  }
+
+  .timeline-posts {
+    padding-left: 16px;
+  }
+
+  .timeline-post-line {
+    left: -16px;
+  }
+
+  .timeline-post::before {
+    left: -22px;
+    width: 10px;
+    height: 10px;
+  }
+
+  .moments-view-switcher {
+    padding: 0 8px;
+    margin-bottom: 12px;
+  }
+
+  .view-switcher-text {
+    display: none;
+  }
+
+  .moments-view-switcher .ant-btn {
+    padding: 4px 12px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .moments-container {
+    padding: 20px;
+  }
+  
+  .moments-card .ant-card-body {
+    padding: 20px;
+  }
+
+  .moments-timeline {
+    padding: 0 12px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .moments-container {
+    padding: 28px;
+  }
+  
+  .moments-card .ant-card-body {
+    padding: 24px;
+  }
+}

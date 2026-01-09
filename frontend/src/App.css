@@ -1,0 +1,45 @@
+/* App全局样式 - 简约风格 */
+
+.app-layout {
+  min-height: 100vh;
+  background-color: #FAFAFA;
+}
+
+.app-content {
+  padding: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: transparent;
+}
+
+.app-footer {
+  text-align: center;
+  padding: 24px;
+  background-color: #FFFFFF;
+  border-top: 1px solid #F0F0F0;
+  color: #8C8C8C;
+  font-size: 14px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .app-footer {
+    padding: 16px;
+    font-size: 13px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .app-footer {
+    padding: 20px;
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-footer {
+    padding: 24px;
+    font-size: 14px;
+  }
+}
