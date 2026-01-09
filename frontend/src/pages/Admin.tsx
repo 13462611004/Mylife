@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Form, Input, DatePicker, Select, Upload, Modal, message, Space, Row, Col, Tabs, Tag, Checkbox, Popconfirm } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, EyeOutlined, LogoutOutlined, LockOutlined, SettingOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, EyeOutlined, LockOutlined, SettingOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../services/axios';
 import { MarathonEvent, MarathonRegistration, Post, AdminSetting } from '../services/types';
@@ -837,20 +837,12 @@ const Admin: React.FC = () => {
       <Card>
         <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ margin: 0 }}>管理后台</h2>
-          <Space>
-            <Button 
-              icon={<SettingOutlined />} 
-              onClick={() => setPasswordModalVisible(true)}
-            >
-              修改密码
-            </Button>
-            <Button 
-              icon={<LogoutOutlined />} 
-              onClick={handleLogout}
-            >
-              退出登录
-            </Button>
-          </Space>
+          <Button 
+            icon={<SettingOutlined />} 
+            onClick={() => setPasswordModalVisible(true)}
+          >
+            修改密码
+          </Button>
         </div>
         <Tabs defaultActiveKey="1">
           <Tabs.TabPane tab="马拉松赛事" key="1">
