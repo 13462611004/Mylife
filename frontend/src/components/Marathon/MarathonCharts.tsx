@@ -626,8 +626,8 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
     if (events.length > 0) {
       setHoverTooltip({
         show: true,
-        x: params.event?.offsetX || 0,
-        y: params.event?.offsetY || 0,
+        x: params.event?.clientX || 0,
+        y: params.event?.clientY || 0,
         events: events
       });
     }
@@ -638,8 +638,8 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
     if (hoverTooltip.show && params.event) {
       setHoverTooltip(prev => ({
         ...prev,
-        x: params.event.offsetX,
-        y: params.event.offsetY
+        x: params.event.clientX,
+        y: params.event.clientY
       }));
     }
   };
