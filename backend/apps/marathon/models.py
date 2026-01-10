@@ -73,51 +73,124 @@ class Marathon(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     
+    def normalize_province_name(self, province):
+        """标准化省份名称：转换为地图数据需要的完整格式"""
+        if not province:
+            return province
+        
+        # 地图数据中使用的完整格式名称列表
+        full_format_provinces = [
+            '北京市', '天津市', '上海市', '重庆市',
+            '河北省', '山西省', '辽宁省', '吉林省', '黑龙江省',
+            '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省',
+            '河南省', '湖北省', '湖南省', '广东省', '广西壮族自治区', '海南省',
+            '四川省', '贵州省', '云南省', '西藏自治区', '陕西省', '甘肃省',
+            '青海省', '宁夏回族自治区', '新疆维吾尔自治区', '内蒙古自治区',
+            '香港特别行政区', '澳门特别行政区', '台湾省'
+        ]
+        
+        # 如果已经是完整格式，直接返回
+        if province in full_format_provinces:
+            return province
+        
+        # 映射：简化格式 -> 完整格式（地图数据需要的格式）
+        province_map = {
+            '北京': '北京市',
+            '天津': '天津市',
+            '上海': '上海市',
+            '重庆': '重庆市',
+            '河北': '河北省',
+            '山西': '山西省',
+            '辽宁': '辽宁省',
+            '吉林': '吉林省',
+            '黑龙江': '黑龙江省',
+            '江苏': '江苏省',
+            '浙江': '浙江省',
+            '安徽': '安徽省',
+            '福建': '福建省',
+            '江西': '江西省',
+            '山东': '山东省',
+            '河南': '河南省',
+            '湖北': '湖北省',
+            '湖南': '湖南省',
+            '广东': '广东省',
+            '广西': '广西壮族自治区',
+            '海南': '海南省',
+            '四川': '四川省',
+            '贵州': '贵州省',
+            '云南': '云南省',
+            '西藏': '西藏自治区',
+            '陕西': '陕西省',
+            '甘肃': '甘肃省',
+            '青海': '青海省',
+            '宁夏': '宁夏回族自治区',
+            '新疆': '新疆维吾尔自治区',
+            '内蒙古': '内蒙古自治区',
+            '香港': '香港特别行政区',
+            '澳门': '澳门特别行政区',
+            '台湾': '台湾省',
+        }
+        
+        # 如果在映射表中，返回完整格式
+        if province in province_map:
+            return province_map[province]
+        
+        # 如果不在映射表中，尝试添加后缀
+        if not province.endswith(('省', '市', '自治区', '特别行政区')):
+            if province in ['北京', '天津', '上海', '重庆']:
+                return province + '市'
+            else:
+                return province + '省'
+        
+        return province
+    
+    def normalize_city_name(self, city):
+        """标准化城市名称：保持完整格式（地图数据通常使用完整格式，如"成都市"）"""
+        # 地图数据中的城市名称通常是完整格式，所以保持原样
+        if not city:
+            return city
+        # 如果已经有后缀，直接返回
+        if city.endswith(('市', '县', '区', '自治州', '盟', '地区', '自治县')):
+            return city
+        # 保持原样，不自动添加后缀（需要在输入时限制格式）
+        return city
+    
+    def normalize_district_name(self, district):
+        """标准化区县名称：保持完整格式（地图数据通常使用完整格式）"""
+        # 地图数据中的区县名称通常是完整格式，所以保持原样
+        if not district:
+            return district
+        # 如果已经有后缀，直接返回
+        if district.endswith(('区', '县', '市', '自治县', '自治旗')):
+            return district
+        # 保持原样，不自动添加后缀
+        return district
+
     def save(self, *args, **kwargs):
         """保存时自动同步外键字段和字符串字段，并标准化为地图需要的格式"""
-        # 省份名称标准化：转换为地图数据中的格式
+        # 省份名称标准化：优先从外键获取，否则标准化字符串字段
         if self.province_obj:
             province_name = self.province_obj.name
-            # 省份名称映射：完整名称 -> 地图数据名称
-            province_map = {
-                '广西壮族自治区': '广西',
-                '西藏自治区': '西藏',
-                '新疆维吾尔自治区': '新疆',
-                '宁夏回族自治区': '宁夏',
-                '内蒙古自治区': '内蒙古',
-                '香港特别行政区': '香港',
-                '澳门特别行政区': '澳门',
-            }
-            if province_name in province_map:
-                self.province = province_map[province_name]
-            else:
-                # 对于其他省份，移除"省"、"市"、"自治区"等后缀
-                normalized = province_name.replace('省', '').replace('市', '').replace('自治区', '')
-                self.province = normalized
+            self.province = self.normalize_province_name(province_name)
+        elif self.province:
+            # 如果没有外键对象，但province字段有值，也要标准化
+            self.province = self.normalize_province_name(self.province)
         
-        # 城市名称标准化：移除"市"、"县"、"区"等后缀
+        # 城市名称标准化：优先从外键获取，否则标准化字符串字段
         if self.city_obj:
             city_name = self.city_obj.name
-            # 移除常见的后缀
-            suffixes = ['市', '县', '区', '自治州', '盟', '地区']
-            normalized_city = city_name
-            for suffix in suffixes:
-                if normalized_city.endswith(suffix):
-                    normalized_city = normalized_city[:-len(suffix)]
-                    break
-            self.city = normalized_city
+            self.city = self.normalize_city_name(city_name)
+        elif self.city:
+            # 如果没有外键对象，但city字段有值，也要标准化
+            self.city = self.normalize_city_name(self.city)
         
-        # 区县名称标准化：移除"区"、"县"等后缀
+        # 区县名称标准化：优先从外键获取，否则标准化字符串字段
         if self.district_obj:
             district_name = self.district_obj.name
-            # 移除常见的后缀
-            suffixes = ['区', '县', '市', '自治县', '自治旗']
-            normalized_district = district_name
-            for suffix in suffixes:
-                if normalized_district.endswith(suffix):
-                    normalized_district = normalized_district[:-len(suffix)]
-                    break
-            self.district = normalized_district
+            self.district = self.normalize_district_name(district_name)
+        elif self.district:
+            # 如果没有外键对象，但district字段有值，也要标准化
+            self.district = self.normalize_district_name(self.district)
         
         super().save(*args, **kwargs)
     
@@ -187,6 +260,113 @@ class MarathonRegistration(models.Model):
     notes = models.TextField(blank=True, verbose_name="备注")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    
+    def normalize_province_name(self, province):
+        """标准化省份名称：转换为地图数据需要的完整格式"""
+        if not province:
+            return province
+        
+        # 地图数据中使用的完整格式名称列表
+        full_format_provinces = [
+            '北京市', '天津市', '上海市', '重庆市',
+            '河北省', '山西省', '辽宁省', '吉林省', '黑龙江省',
+            '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省',
+            '河南省', '湖北省', '湖南省', '广东省', '广西壮族自治区', '海南省',
+            '四川省', '贵州省', '云南省', '西藏自治区', '陕西省', '甘肃省',
+            '青海省', '宁夏回族自治区', '新疆维吾尔自治区', '内蒙古自治区',
+            '香港特别行政区', '澳门特别行政区', '台湾省'
+        ]
+        
+        # 如果已经是完整格式，直接返回
+        if province in full_format_provinces:
+            return province
+        
+        # 映射：简化格式 -> 完整格式（地图数据需要的格式）
+        province_map = {
+            '北京': '北京市',
+            '天津': '天津市',
+            '上海': '上海市',
+            '重庆': '重庆市',
+            '河北': '河北省',
+            '山西': '山西省',
+            '辽宁': '辽宁省',
+            '吉林': '吉林省',
+            '黑龙江': '黑龙江省',
+            '江苏': '江苏省',
+            '浙江': '浙江省',
+            '安徽': '安徽省',
+            '福建': '福建省',
+            '江西': '江西省',
+            '山东': '山东省',
+            '河南': '河南省',
+            '湖北': '湖北省',
+            '湖南': '湖南省',
+            '广东': '广东省',
+            '广西': '广西壮族自治区',
+            '海南': '海南省',
+            '四川': '四川省',
+            '贵州': '贵州省',
+            '云南': '云南省',
+            '西藏': '西藏自治区',
+            '陕西': '陕西省',
+            '甘肃': '甘肃省',
+            '青海': '青海省',
+            '宁夏': '宁夏回族自治区',
+            '新疆': '新疆维吾尔自治区',
+            '内蒙古': '内蒙古自治区',
+            '香港': '香港特别行政区',
+            '澳门': '澳门特别行政区',
+            '台湾': '台湾省',
+        }
+        
+        # 如果在映射表中，返回完整格式
+        if province in province_map:
+            return province_map[province]
+        
+        # 如果不在映射表中，尝试添加后缀
+        if not province.endswith(('省', '市', '自治区', '特别行政区')):
+            if province in ['北京', '天津', '上海', '重庆']:
+                return province + '市'
+            else:
+                return province + '省'
+        
+        return province
+    
+    def normalize_city_name(self, city):
+        """标准化城市名称：保持完整格式（地图数据通常使用完整格式，如"成都市"）"""
+        if not city:
+            return city
+        # 如果已经有后缀，直接返回
+        if city.endswith(('市', '县', '区', '自治州', '盟', '地区', '自治县')):
+            return city
+        # 保持原样，不自动添加后缀（需要在输入时限制格式）
+        return city
+    
+    def normalize_district_name(self, district):
+        """标准化区县名称：保持完整格式（地图数据通常使用完整格式）"""
+        if not district:
+            return district
+        # 如果已经有后缀，直接返回
+        if district.endswith(('区', '县', '市', '自治县', '自治旗')):
+            return district
+        # 保持原样，不自动添加后缀
+        return district
+
+    def save(self, *args, **kwargs):
+        """保存时标准化地理名称为地图需要的格式"""
+        # 标准化省份名称
+        if self.province:
+            self.province = self.normalize_province_name(self.province)
+        
+        # 标准化城市名称
+        if self.city:
+            self.city = self.normalize_city_name(self.city)
+        
+        # 标准化区县名称
+        if self.district:
+            self.district = self.normalize_district_name(self.district)
+        
+        super().save(*args, **kwargs)
     
     class Meta:
         verbose_name = "报名赛事"

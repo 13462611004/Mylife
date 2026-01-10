@@ -13,4 +13,6 @@ urlpatterns = [
     # 报名赛事API
     path('registration/', views.MarathonRegistrationListView.as_view(), name='registration-list'),  # 获取所有报名赛事
     path('registration/<int:pk>/', views.MarathonRegistrationDetail.as_view(), name='registration-detail'),  # 获取单个报名赛事详情
+    # 地图数据代理API
+    path('map-data/', views.MapDataProxy.as_view(), name='map-data-proxy'),  # 地图数据代理
 ]

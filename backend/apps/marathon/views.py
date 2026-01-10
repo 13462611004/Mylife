@@ -7,7 +7,10 @@ from .models import Marathon, Province, City, District, MarathonRegistration
 from .serializers import MarathonSerializer, MarathonListSerializer, MarathonRegistrationSerializer, MarathonRegistrationListSerializer
 from .permissions import IsAdminOrReadOnly
 from django.conf import settings
+from django.core.cache import cache
 import os
+import requests
+import json
 
 """马拉松赛事视图"""
 class MarathonListView(APIView):
@@ -164,6 +167,75 @@ class DistrictListByCity(APIView):
             return Response(district_list)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class MapDataProxy(APIView):
+    """地图数据代理，避免前端CORS问题"""
+    permission_classes = [IsAdminOrReadOnly]  # 允许游客读取
+    
+    def get(self, request):
+        """代理获取地图数据（带缓存）"""
+        code = request.GET.get('code', '100000')  # 默认是中国地图 100000
+        
+        # 检查缓存
+        cache_key = f'map_data_{code}'
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data, content_type='application/json')
+        
+        # 多个备用数据源（按优先级排序，优先使用阿里云，因为GitHub可能较慢）
+        map_data_sources = []
+        
+        # 对于中国地图，使用更可靠的数据源
+        if code == '100000':
+            map_data_sources = [
+                f'https://geo.datav.aliyun.com/areas_v3/bound/{code}_full.json',  # 优先使用阿里云
+                'https://raw.githubusercontent.com/DataV-Team/datav.geo.atlas/master/china.json',
+                'https://raw.githubusercontent.com/lyhmyd1211/GeoMapData_CN/master/geojson/100000_full.json',
+            ]
+        else:
+            # 省份地图数据源
+            map_data_sources = [
+                f'https://geo.datav.aliyun.com/areas_v3/bound/{code}_full.json',  # 优先使用阿里云
+                f'https://raw.githubusercontent.com/lyhmyd1211/GeoMapData_CN/master/geojson/{code}_full.json',
+            ]
+        
+        # 减少超时时间到3秒，加快失败重试
+        timeout = 3
+        
+        for source_url in map_data_sources:
+            try:
+                response = requests.get(
+                    source_url,
+                    timeout=timeout,
+                    headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        'Accept': 'application/json',
+                    }
+                )
+                
+                if response.status_code == 200:
+                    try:
+                        map_data = response.json()
+                        # 验证数据格式
+                        if isinstance(map_data, dict) and ('features' in map_data or 'type' in map_data):
+                            # 缓存数据（2小时，因为地图数据基本不变）
+                            cache.set(cache_key, map_data, settings.CACHE_TIMEOUT['LONG'])
+                            return Response(map_data, content_type='application/json')
+                    except json.JSONDecodeError:
+                        # 如果不是JSON，尝试作为文本处理（可能是JS文件）
+                        continue
+                        
+            except (requests.exceptions.RequestException, requests.exceptions.Timeout) as e:
+                # 继续尝试下一个数据源
+                continue
+        
+        # 如果所有数据源都失败，返回一个最小化的GeoJSON结构
+        return Response({
+            'type': 'FeatureCollection',
+            'features': [],
+            'error': '所有地图数据源都不可用'
+        }, status=status.HTTP_200_OK)
 
 
 """马拉松报名赛事视图"""

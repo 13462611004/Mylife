@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { Modal, List } from 'antd';
 import { MarathonEvent } from '../../services/types';
+import apiClient from '../../services/axios';
 
 interface LocationMapProps {
   events: MarathonEvent[] | unknown;
@@ -19,27 +20,30 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedRegionEvents, setSelectedRegionEvents] = useState<MarathonEvent[]>([]);
+  
+  // 地图数据缓存（避免重复加载相同地图）
+  const mapDataCache = useRef<Map<string, any>>(new Map());
 
-  // 所有省份的标准化名称列表（与数据库中的格式一致）
+  // 所有省份的完整格式名称列表（必须与地图数据中的格式一致）
   const allProvinces = [
-    '北京', '天津', '上海', '重庆',
-    '河北', '山西', '辽宁', '吉林', '黑龙江',
-    '江苏', '浙江', '安徽', '福建', '江西', '山东',
-    '河南', '湖北', '湖南', '广东', '广西', '海南',
-    '四川', '贵州', '云南', '西藏', '陕西', '甘肃',
-    '青海', '宁夏', '新疆', '内蒙古',
-    '香港', '澳门', '台湾'
+    '北京市', '天津市', '上海市', '重庆市',
+    '河北省', '山西省', '辽宁省', '吉林省', '黑龙江省',
+    '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省',
+    '河南省', '湖北省', '湖南省', '广东省', '广西壮族自治区', '海南省',
+    '四川省', '贵州省', '云南省', '西藏自治区', '陕西省', '甘肃省',
+    '青海省', '宁夏回族自治区', '新疆维吾尔自治区', '内蒙古自治区',
+    '香港特别行政区', '澳门特别行政区', '台湾省'
   ];
 
-  // 注意：数据库中的省份、城市、区县名称已经是标准化格式（地图需要的格式）
-  // 因此不需要再进行转换，直接使用即可
+  // 注意：数据库中的省份、城市、区县名称应该是标准化格式（地图需要的格式）
+  // 不应该在这里进行转换，应该在数据提交时和后端验证时限制格式
 
   const getProvinceData = () => {
     const provinceCount: Record<string, number> = {};
     
     console.log('原始赛事数据：', safeEvents);
     
-    // 数据库中的省份名称已经是标准化格式，直接使用
+    // 数据库中的省份名称应该是标准化格式，直接使用
     safeEvents.forEach(event => {
       const province = event.province || '未知';
       if (province !== '未知') {
@@ -66,11 +70,11 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
   const getCityData = (province: string) => {
     const cityCount: Record<string, number> = {};
     
-    // 数据库中的省份和城市名称已经是标准化格式，直接使用
+    // 数据库中的省份和城市名称应该是标准化格式，直接使用
     safeEvents.forEach(event => {
-      // 直接匹配省份名称（已经是标准化格式）
+      // 直接匹配省份名称（应该是标准化格式）
       if (event.province === province && event.city) {
-        // 城市名称也已经是标准化格式（不带"市"等后缀）
+        // 城市名称应该是标准化格式（不带"市"等后缀）
         cityCount[event.city] = (cityCount[event.city] || 0) + 1;
       }
     });
@@ -85,24 +89,23 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
     return result;
   };
 
-  // 判断是否为直辖市（数据库中的名称已经是标准化格式）
+  // 判断是否为直辖市（数据库中的名称应该是完整格式）
   const isMunicipality = (province: string) => {
-    // 数据库中的省份名称已经是标准化格式（如"北京"而不是"北京市"）
-    const municipalities = ['北京', '天津', '上海', '重庆'];
+    // 数据库中的省份名称应该是完整格式（如"北京市"）
+    const municipalities = ['北京市', '天津市', '上海市', '重庆市'];
     return municipalities.includes(province);
   };
 
   // 获取直辖市的区县数据
   const getDistrictData = (province: string) => {
     // 对于直辖市，地图显示的是区县级别
-    // 数据库中的省份和区县名称已经是标准化格式，直接使用
+    // 数据库中的省份和区县名称应该是标准化格式，直接使用
     const districtCount: Record<string, number> = {};
     
     safeEvents.forEach(event => {
-      // 直接匹配省份名称（已经是标准化格式）
-      // 只统计该省的赛事，并且有区县数据的
+      // 直接匹配省份名称（应该是标准化格式），只统计该省的赛事，并且有区县数据的
       if (event.province === province && event.district) {
-        // 区县名称也已经是标准化格式（不带"区"、"县"等后缀）
+        // 区县名称应该是标准化格式（不带"区"、"县"等后缀）
         districtCount[event.district] = (districtCount[event.district] || 0) + 1;
       }
     });
@@ -237,17 +240,17 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
   // 获取某个地区的所有比赛
   const getEventsByRegion = (regionName: string): MarathonEvent[] => {
     if (currentLevel === 'country') {
-      // 全国地图级别：按省份筛选（数据库中的名称已经是标准化格式）
+      // 全国地图级别：按省份筛选（数据库中的名称应该是标准化格式）
       return safeEvents.filter(event => event.province === regionName);
     } else if (currentLevel === 'province') {
-      // 省级地图级别：按城市或区县筛选
+      // 省级地图级别：按城市或区县筛选（数据库中的名称应该是标准化格式）
       if (isMunicipality(selectedProvince)) {
-        // 直辖市：按区县筛选（数据库中的名称已经是标准化格式）
+        // 直辖市：按区县筛选
         return safeEvents.filter(event => 
           event.province === selectedProvince && event.district === regionName
         );
       } else {
-        // 普通省份：按城市筛选（数据库中的名称已经是标准化格式）
+        // 普通省份：按城市筛选
         return safeEvents.filter(event => 
           event.province === selectedProvince && event.city === regionName
         );
@@ -307,29 +310,44 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
       try {
         setMapLoaded(false); // 开始加载时设置为 false
         console.log('开始加载地图数据，当前级别：', currentLevel, '选中省份：', selectedProvince);
+        
+        // 先加载echarts模块（所有地图都需要）
         const echartsModule = await import('echarts');
         // echarts模块的导入方式：直接使用模块本身，不需要default
         const echarts = echartsModule;
         
         if (currentLevel === 'country') {
-          // 加载中国地图数据
+          // 加载中国地图数据 - 通过后端代理API
           console.log('加载中国地图数据...');
+          
+          // 检查缓存
+          const cacheKey = 'china_100000';
+          if (mapDataCache.current.has(cacheKey)) {
+            console.log('使用缓存的中国地图数据');
+            const cachedData = mapDataCache.current.get(cacheKey);
+            echarts.registerMap('china', cachedData);
+            setMapLoaded(true);
+            return;
+          }
+          
           try {
-          const response = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-          const chinaJson = await response.json();
-            if (!chinaJson || !chinaJson.features) {
+            // 使用后端代理API，避免CORS问题
+            const chinaJson = await apiClient.get('/api/marathon/map-data/', {
+              params: { code: '100000' }
+            });
+            
+            if (!chinaJson || !chinaJson.features || !Array.isArray(chinaJson.features)) {
               throw new Error('地图数据格式不正确');
             }
-          console.log('中国地图数据加载完成：', chinaJson);
-          echarts.registerMap('china', chinaJson);
-            setMapLoaded(true); // 只有成功注册后才设置为 true
-          console.log('中国地图注册完成，mapLoaded 设置为 true');
-          } catch (fetchError) {
+            
+            console.log('中国地图数据加载完成，包含', chinaJson.features.length, '个区域');
+            // 缓存地图数据
+            mapDataCache.current.set(cacheKey, chinaJson);
+            echarts.registerMap('china', chinaJson);
+            setMapLoaded(true);
+            console.log('中国地图注册完成，mapLoaded 设置为 true');
+          } catch (fetchError: any) {
             console.error('加载中国地图数据失败:', fetchError);
-            // 加载失败时不设置 mapLoaded = true，保持 false，显示加载中的提示
             setMapLoaded(false);
           }
         } else if (selectedProvince) {
@@ -357,23 +375,37 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
           const code = provinceCode[selectedProvince];
           if (code) {
             console.log(`加载省份地图数据，省份：${selectedProvince}，代码：${code}`);
+            
+            // 检查缓存
+            const cacheKey = `${selectedProvince}_${code}`;
+            if (mapDataCache.current.has(cacheKey)) {
+              console.log(`使用缓存的省份地图数据: ${selectedProvince}`);
+              const cachedData = mapDataCache.current.get(cacheKey);
+              echarts.registerMap(selectedProvince, cachedData);
+              setMapLoaded(true);
+              return;
+            }
+            
+            // 使用后端代理API，避免CORS问题
             try {
-            const response = await fetch(`https://geo.datav.aliyun.com/areas_v3/bound/${code}_full.json`);
-              if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-              }
-            const provinceJson = await response.json();
-              if (!provinceJson || !provinceJson.features) {
+              console.log(`通过后端代理加载省份地图数据: ${selectedProvince}，代码: ${code}`);
+              const provinceJson = await apiClient.get('/api/marathon/map-data/', {
+                params: { code: code }
+              });
+              
+              if (!provinceJson || !provinceJson.features || !Array.isArray(provinceJson.features)) {
                 throw new Error('地图数据格式不正确');
               }
-            console.log('省份地图数据加载完成');
-            console.log('地图中的所有区域名称：', provinceJson.features.map((f: any) => f.properties.name));
-            echarts.registerMap(selectedProvince, provinceJson);
-              setMapLoaded(true); // 只有成功注册后才设置为 true
-            console.log('省份地图注册完成，mapLoaded 设置为 true');
-            } catch (fetchError) {
-              console.error('加载省份地图数据失败:', fetchError);
-              // 加载失败时不设置 mapLoaded = true，保持 false，显示加载中的提示
+              
+              console.log('省份地图数据加载完成');
+              console.log('地图中的所有区域名称：', provinceJson.features.map((f: any) => f.properties?.name || '未知'));
+              // 缓存地图数据
+              mapDataCache.current.set(cacheKey, provinceJson);
+              echarts.registerMap(selectedProvince, provinceJson);
+              setMapLoaded(true);
+              console.log('省份地图注册完成，mapLoaded 设置为 true');
+            } catch (fetchError: any) {
+              console.error(`加载省份地图数据失败 (${selectedProvince}):`, fetchError);
               setMapLoaded(false);
             }
           } else {
@@ -382,19 +414,18 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
             setMapLoaded(false);
           }
         } else {
-          // 如果没有选中省份，尝试加载全国地图
+          // 如果没有选中省份，尝试加载全国地图（通过后端代理）
           try {
-            const response = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const chinaJson = await response.json();
-            if (!chinaJson || !chinaJson.features) {
+            const chinaJson = await apiClient.get('/api/marathon/map-data/', {
+              params: { code: '100000' }
+            });
+            if (!chinaJson || !chinaJson.features || !Array.isArray(chinaJson.features)) {
               throw new Error('地图数据格式不正确');
             }
+            console.log('默认地图数据加载完成，包含', chinaJson.features.length, '个区域');
             echarts.registerMap('china', chinaJson);
             setMapLoaded(true);
-          } catch (error) {
+          } catch (error: any) {
             console.error('加载默认地图数据失败:', error);
             setMapLoaded(false);
           }
@@ -453,7 +484,31 @@ const LocationMap: React.FC<LocationMapProps> = ({ events }) => {
         }}>
           <div>地图数据加载中...</div>
           <div style={{ marginTop: '10px', fontSize: '12px', color: '#999' }}>
-            如果长时间未加载，请检查网络连接或刷新页面
+            如果长时间未加载，可能是网络问题或数据源暂时不可用
+          </div>
+          <div style={{ marginTop: '20px' }}>
+            <button 
+              onClick={() => {
+                setMapLoaded(false);
+                // 触发重新加载
+                const event = new Event('resize');
+                window.dispatchEvent(event);
+                setTimeout(() => {
+                  setCurrentLevel(currentLevel);
+                }, 100);
+              }}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#B22A2A',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              重试加载
+            </button>
           </div>
         </div>
       )}
