@@ -608,8 +608,8 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
     if (events.length > 0) {
       setHoverTooltip({
         show: true,
-        x: 0, // 初始位置，会在mousemove中更新
-        y: 0,
+        x: params.event?.offsetX || 0,
+        y: params.event?.offsetY || 0,
         events: events
       });
     }
@@ -745,13 +745,19 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
             <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#B22A2A' }}>
               {hoverTooltip.events.length > 0 ? `${hoverTooltip.events[0].province || hoverTooltip.events[0].city || hoverTooltip.events[0].district}的赛事` : '暂无赛事'}
             </div>
-            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-              {hoverTooltip.events.map((event, index) => (
-                <div key={index} style={{ fontSize: '12px', marginBottom: '4px', color: '#333' }}>
-                  • {event.event_name}
-                </div>
-              ))}
-            </div>
+            {currentLevel === 'country' ? (
+              <div style={{ fontSize: '12px', color: '#333' }}>
+                参赛数量：{hoverTooltip.events.length}
+              </div>
+            ) : (
+              <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                {hoverTooltip.events.map((event, index) => (
+                  <div key={index} style={{ fontSize: '12px', marginBottom: '4px', color: '#333' }}>
+                    • {event.event_name}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
