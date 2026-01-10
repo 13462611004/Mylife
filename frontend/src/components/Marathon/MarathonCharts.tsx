@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import ReactECharts from 'echarts-for-react';
+import * as echarts from 'echarts';
 import { MarathonEvent } from '../../services/types';
 
 // 注册Chart.js组件
@@ -33,12 +34,6 @@ interface MarathonChartsProps {
 const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
   // 防御性处理，确保后续逻辑中使用的一定是数组
   const safeEvents: MarathonEvent[] = Array.isArray(events) ? events as MarathonEvent[] : [];
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [currentMapNameState, setCurrentMapNameState] = useState<string>('china');
-  const [currentLevel, setCurrentLevel] = useState<'country' | 'province' | 'district'>('country');
-  const [selectedProvince, setSelectedProvince] = useState<string>('');
-  const [selectedCity, setSelectedCity] = useState<string>('');
-  const chartRef = React.useRef<ReactECharts>(null);
   
   console.log('MarathonCharts 接收到的 events 数据：', safeEvents);
   console.log('events 长度：', safeEvents.length);
@@ -49,267 +44,155 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
     paceLength: e.pace ? String(e.pace).length : 0
   })));
 
+  // 地图状态管理
+  const [currentLevel, setCurrentLevel] = useState<string>('country');
+  const [selectedProvince, setSelectedProvince] = useState<string>('');
+  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [mapLoaded, setMapLoaded] = useState<boolean>(false);
+  const [currentMapName, setCurrentMapName] = useState<string>('china');
+  const [hoverTooltip, setHoverTooltip] = useState<{
+    show: boolean;
+    x: number;
+    y: number;
+    events: MarathonEvent[];
+  }>({
+    show: false,
+    x: 0,
+    y: 0,
+    events: []
+  });
+  
+  // 地图数据缓存
+  const mapDataCache = useRef<Record<string, any>>({});
+  
   // 省份代码映射
   const provinceCodeMap: Record<string, string> = {
-    '北京': '110000', '天津': '120000', '上海': '310000', '重庆': '500000',
-    '河北': '130000', '山西': '140000', '辽宁': '210000', '吉林': '220000', '黑龙江': '230000',
-    '江苏': '320000', '浙江': '330000', '安徽': '340000', '福建': '350000', '江西': '360000', '山东': '370000',
-    '河南': '410000', '湖北': '420000', '湖南': '430000', '广东': '440000', '广西': '450000', '海南': '460000',
-    '四川': '510000', '贵州': '520000', '云南': '530000', '西藏': '540000', '陕西': '610000', '甘肃': '620000',
-    '青海': '630000', '宁夏': '640000', '新疆': '650000', '内蒙古': '150000',
-    '香港': '810000', '澳门': '820000', '台湾': '710000',
-    '北京市': '110000', '天津市': '120000', '上海市': '310000', '重庆市': '500000',
-    '河北省': '130000', '山西省': '140000', '辽宁省': '210000', '吉林省': '220000', '黑龙江省': '230000',
-    '江苏省': '320000', '浙江省': '330000', '安徽省': '340000', '福建省': '350000', '江西省': '360000', '山东省': '370000',
-    '河南省': '410000', '湖北省': '420000', '湖南省': '430000', '广东省': '440000', '广西壮族自治区': '450000', '海南省': '460000',
-    '四川省': '510000', '贵州省': '520000', '云南省': '530000', '西藏自治区': '540000', '陕西省': '610000', '甘肃省': '620000',
-    '青海省': '630000', '宁夏回族自治区': '640000', '新疆维吾尔自治区': '650000', '内蒙古自治区': '150000',
-    '香港特别行政区': '810000', '澳门特别行政区': '820000', '台湾省': '710000'
+    '北京市': '110000',
+    '天津市': '120000',
+    '河北省': '130000',
+    '山西省': '140000',
+    '内蒙古自治区': '150000',
+    '辽宁省': '210000',
+    '吉林省': '220000',
+    '黑龙江省': '230000',
+    '上海市': '310000',
+    '江苏省': '320000',
+    '浙江省': '330000',
+    '安徽省': '340000',
+    '福建省': '350000',
+    '江西省': '360000',
+    '山东省': '370000',
+    '河南省': '410000',
+    '湖北省': '420000',
+    '湖南省': '430000',
+    '广东省': '440000',
+    '广西壮族自治区': '450000',
+    '海南省': '460000',
+    '重庆市': '500000',
+    '四川省': '510000',
+    '贵州省': '520000',
+    '云南省': '530000',
+    '西藏自治区': '540000',
+    '陕西省': '610000',
+    '甘肃省': '620000',
+    '青海省': '630000',
+    '宁夏回族自治区': '640000',
+    '新疆维吾尔自治区': '650000',
+    '台湾省': '710000',
+    '香港特别行政区': '810000',
+    '澳门特别行政区': '820000'
   };
-
-  // 城市代码映射（部分主要城市示例，可根据需要扩展）
-  const cityCodeMap: Record<string, string> = {
-    '北京市': '110000', '天津市': '120000', '上海市': '310000', '重庆市': '500000',
-    '杭州市': '330100', '宁波市': '330200', '温州市': '330300', '嘉兴市': '330400',
-    '湖州市': '330500', '绍兴市': '330600', '金华市': '330700', '衢州市': '330800',
-    '舟山市': '330900', '台州市': '331000', '丽水市': '331100',
-    '北京市市辖区': '110100', '杭州市市辖区': '330100', '东城区': '110101',
-    '西城区': '110102', '朝阳区': '110105', '丰台区': '110106', '石景山区': '110107',
-    '海淀区': '110108', '门头沟区': '110109', '房山区': '110111', '通州区': '110112',
-    '顺义区': '110113', '昌平区': '110114', '大兴区': '110115', '怀柔区': '110116',
-    '平谷区': '110117', '密云区': '110118', '延庆区': '110119'
-  };
-
-  // 地图数据缓存
-  const mapDataCache = React.useRef<Record<string, any>>({});
-
-  // 加载地图
-  useEffect(() => {
-    const loadMap = async () => {
-      try {
-        setMapLoaded(false);
-        const echartsModule = await import('echarts');
-        const echarts = echartsModule.default || echartsModule;
-        
-        if (currentLevel === 'country') {
-          // 加载中国地图
-          // 先检查地图是否已注册
-          try {
-            const existingMap = echarts.getMap('china');
-            if (existingMap) {
-              setCurrentMapNameState('china');
-              setMapLoaded(true);
-              return;
-            }
-          } catch (e) {
-            // 地图未注册，继续加载
-          }
-          
-          // 检查缓存
-          if (mapDataCache.current['china']) {
-            console.log('从缓存加载中国地图');
-            echarts.registerMap('china', mapDataCache.current['china']);
-            setCurrentMapNameState('china');
-            setMapLoaded(true);
-            return;
-          }
-          
-          const response = await fetch('/maps/china.json');
-          if (!response.ok) {
-            throw new Error('加载中国地图失败');
-          }
-          const chinaJson = await response.json();
-          if (!chinaJson || !chinaJson.features) {
-            throw new Error('地图数据格式不正确');
-          }
-          
-          // 缓存地图数据
-          mapDataCache.current['china'] = chinaJson;
-          echarts.registerMap('china', chinaJson);
-          
-          // 验证注册是否成功
-          try {
-            const registeredMap = echarts.getMap('china');
-            if (registeredMap && registeredMap.geoJson) {
-              setCurrentMapNameState('china');
-              setMapLoaded(true);
-            } else {
-              throw new Error('地图注册失败：地图数据不完整');
-            }
-          } catch (e) {
-            console.error('验证地图注册失败:', e);
-            throw new Error('地图注册失败');
-          }
-        } else if (currentLevel === 'province' && selectedProvince) {
-          // 加载省份地图
-          const code = provinceCodeMap[selectedProvince];
-          console.log(`开始加载省份地图: ${selectedProvince}, 代码: ${code}`);
-          
-          if (!code) {
-            console.error(`未找到省份代码: ${selectedProvince}`);
-            console.log('可用的省份代码映射:', Object.keys(provinceCodeMap));
-            setMapLoaded(false);
-            return;
-          }
-          
-          try {
-            const mapName = `province_${code}`;
-            
-            // 先检查地图是否已注册
-            try {
-              const existingMap = echarts.getMap(mapName);
-              if (existingMap && existingMap.geoJson) {
-                console.log(`省份地图已注册: ${mapName}`);
-                setCurrentMapNameState(mapName);
-                setMapLoaded(true);
-                return;
-              }
-            } catch (e) {
-              // 地图未注册，继续加载
-              console.log(`省份地图未注册，开始加载: ${mapName}`);
-            }
-            
-            // 检查缓存
-            if (mapDataCache.current[mapName]) {
-              console.log(`从缓存加载省份地图: ${mapName}`);
-              echarts.registerMap(mapName, mapDataCache.current[mapName]);
-              setCurrentMapNameState(mapName);
-              setMapLoaded(true);
-              return;
-            }
-            
-            console.log(`正在获取省份地图文件: /maps/${code}.json`);
-            const response = await fetch(`/maps/${code}.json`);
-            
-            if (!response.ok) {
-              console.error(`省份地图文件不存在或无法访问: ${code}.json, 状态: ${response.status}`);
-              setMapLoaded(false);
-              return;
-            }
-            
-            const provinceJson = await response.json();
-            if (!provinceJson || !provinceJson.features) {
-              console.error('省份地图数据格式不正确:', provinceJson);
-              setMapLoaded(false);
-              return;
-            }
-            
-            // 缓存地图数据
-            mapDataCache.current[mapName] = provinceJson;
-            console.log(`成功加载省份地图数据: ${mapName}, features数量: ${provinceJson.features.length}`);
-            
-            // 使用省份代码作为地图名称，避免名称冲突
-            echarts.registerMap(mapName, provinceJson);
-            
-            // 验证注册是否成功
-            try {
-              const registeredMap = echarts.getMap(mapName);
-              if (registeredMap && registeredMap.geoJson) {
-                console.log(`省份地图注册成功: ${mapName}`);
-                setCurrentMapNameState(mapName);
-                setMapLoaded(true);
-              } else {
-                console.error('地图注册失败：地图数据不完整');
-                setMapLoaded(false);
-              }
-            } catch (e) {
-              console.error('验证地图注册失败:', e);
-              setMapLoaded(false);
-            }
-          } catch (error) {
-            console.error(`加载省份地图失败: ${selectedProvince}`, error);
-            setMapLoaded(false);
-          }
-        } else if (currentLevel === 'district' && selectedProvince && selectedCity) {
-          // 加载区县地图
-          const city = selectedCity || selectedProvince; // 如果没有选择城市，使用省份作为城市
-          const code = cityCodeMap[city] || provinceCodeMap[selectedProvince];
-          console.log(`开始加载区县地图: ${city}, 代码: ${code}`);
-          
-          if (!code) {
-            console.error(`未找到城市代码: ${city}`);
-            console.log('可用的城市代码映射:', Object.keys(cityCodeMap));
-            setMapLoaded(false);
-            return;
-          }
-          
-          try {
-            const mapName = `district_${code}`;
-            
-            // 先检查地图是否已注册
-            try {
-              const existingMap = echarts.getMap(mapName);
-              if (existingMap && existingMap.geoJson) {
-                console.log(`区县地图已注册: ${mapName}`);
-                setCurrentMapNameState(mapName);
-                setMapLoaded(true);
-                return;
-              }
-            } catch (e) {
-              // 地图未注册，继续加载
-              console.log(`区县地图未注册，开始加载: ${mapName}`);
-            }
-            
-            // 检查缓存
-            if (mapDataCache.current[mapName]) {
-              console.log(`从缓存加载区县地图: ${mapName}`);
-              echarts.registerMap(mapName, mapDataCache.current[mapName]);
-              setCurrentMapNameState(mapName);
-              setMapLoaded(true);
-              return;
-            }
-            
-            console.log(`正在获取区县地图文件: /maps/${code}.json`);
-            const response = await fetch(`/maps/${code}.json`);
-            
-            if (!response.ok) {
-              console.error(`区县地图文件不存在或无法访问: ${code}.json, 状态: ${response.status}`);
-              setMapLoaded(false);
-              return;
-            }
-            
-            const districtJson = await response.json();
-            if (!districtJson || !districtJson.features) {
-              console.error('区县地图数据格式不正确:', districtJson);
-              setMapLoaded(false);
-              return;
-            }
-            
-            // 缓存地图数据
-            mapDataCache.current[mapName] = districtJson;
-            console.log(`成功加载区县地图数据: ${mapName}, features数量: ${districtJson.features.length}`);
-            
-            // 使用城市代码作为地图名称，避免名称冲突
-            echarts.registerMap(mapName, districtJson);
-            
-            // 验证注册是否成功
-            try {
-              const registeredMap = echarts.getMap(mapName);
-              if (registeredMap && registeredMap.geoJson) {
-                console.log(`区县地图注册成功: ${mapName}`);
-                setCurrentMapNameState(mapName);
-                setMapLoaded(true);
-              } else {
-                console.error('地图注册失败：地图数据不完整');
-                setMapLoaded(false);
-              }
-            } catch (e) {
-              console.error('验证地图注册失败:', e);
-              setMapLoaded(false);
-            }
-          } catch (error) {
-            console.error(`加载区县地图失败: ${city}`, error);
-            setMapLoaded(false);
-          }
-        }
-      } catch (error) {
-        console.error('加载地图失败:', error);
-        setMapLoaded(false);
-      }
-    };
-    loadMap();
-  }, [currentLevel, selectedProvince, selectedCity]);
   
+  // 城市代码映射（部分主要城市）
+  const cityCodeMap: Record<string, string> = {
+    // 江苏省
+    '南京市': '320100',
+    '无锡市': '320200',
+    '徐州市': '320300',
+    '常州市': '320400',
+    '苏州市': '320500',
+    '南通市': '320600',
+    '连云港市': '320700',
+    '淮安市': '320800',
+    '盐城市': '320900',
+    '扬州市': '321000',
+    '镇江市': '321100',
+    '泰州市': '321200',
+    '宿迁市': '321300',
+    // 上海市
+    '上海市': '310000',
+    // 北京市
+    '北京市': '110000',
+    // 天津市
+    '天津市': '120000',
+    // 重庆市
+    '重庆市': '500000',
+    // 浙江省
+    '杭州市': '330100',
+    '宁波市': '330200',
+    '温州市': '330300',
+    // 广东省
+    '广州市': '440100',
+    '深圳市': '440300',
+    '珠海市': '440400',
+    // 山东省
+    '济南市': '370100',
+    '青岛市': '370200',
+    // 河南省
+    '郑州市': '410100',
+    // 湖北省
+    '武汉市': '420100',
+    // 湖南省
+    '长沙市': '430100',
+    // 四川省
+    '成都市': '510100',
+    // 福建省
+    '福州市': '350100',
+    '厦门市': '350200',
+    // 安徽省
+    '合肥市': '340100',
+    // 江西省
+    '南昌市': '360100',
+    // 辽宁省
+    '沈阳市': '210100',
+    '大连市': '210200',
+    // 吉林省
+    '长春市': '220100',
+    // 黑龙江省
+    '哈尔滨市': '230100',
+    // 山西省
+    '太原市': '140100',
+    // 陕西省
+    '西安市': '610100',
+    // 甘肃省
+    '兰州市': '620100',
+    // 河北省
+    '石家庄市': '130100',
+    // 云南省
+    '昆明市': '530100',
+    // 贵州省
+    '贵阳市': '520100',
+    // 广西壮族自治区
+    '南宁市': '450100',
+    // 海南省
+    '海口市': '460100',
+    // 内蒙古自治区
+    '呼和浩特市': '150100',
+    // 宁夏回族自治区
+    '银川市': '640100',
+    // 青海省
+    '西宁市': '630100',
+    // 新疆维吾尔自治区
+    '乌鲁木齐市': '650100',
+    // 西藏自治区
+    '拉萨市': '540100'
+  };
+  
+  // 判断是否为直辖市
+  const isMunicipality = (province: string): boolean => {
+    return ['北京市', '天津市', '上海市', '重庆市'].includes(province);
+  };
+
   // 处理配速，将其转换为分钟数用于图表
   // 配速格式：mm:ss 或 m:ss（例如：05:30 表示每公里5分30秒）
   const convertPaceToMinutes = (pace: string | null | undefined): number | null => {
@@ -340,6 +223,61 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
     })
     .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
     .slice(-10); // 取最后10个（最近的10场）
+
+  // 数据处理函数
+  // 统计省份数据
+  const getProvinceData = () => {
+    const provinceCount: Record<string, number> = {};
+    safeEvents.forEach(event => {
+      if (event.province) {
+        provinceCount[event.province] = (provinceCount[event.province] || 0) + 1;
+      }
+    });
+    return Object.keys(provinceCount).map(name => ({
+      name,
+      value: provinceCount[name]
+    }));
+  };
+
+  // 统计指定省份的城市数据
+  const getCityData = (province: string) => {
+    const cityCount: Record<string, number> = {};
+    safeEvents.forEach(event => {
+      if (event.province === province && event.city) {
+        cityCount[event.city] = (cityCount[event.city] || 0) + 1;
+      }
+    });
+    return Object.keys(cityCount).map(name => ({
+      name,
+      value: cityCount[name]
+    }));
+  };
+
+  // 统计指定省份和城市的区县数据
+  const getDistrictData = (province: string, city: string) => {
+    const districtCount: Record<string, number> = {};
+    safeEvents.forEach(event => {
+      if (event.province === province && event.city === city && event.district) {
+        districtCount[event.district] = (districtCount[event.district] || 0) + 1;
+      }
+    });
+    return Object.keys(districtCount).map(name => ({
+      name,
+      value: districtCount[name]
+    }));
+  };
+
+  // 获取指定区域对应的所有赛事
+  const getEventsByRegion = (regionName: string): MarathonEvent[] => {
+    if (currentLevel === 'country') {
+      return safeEvents.filter(event => event.province === regionName);
+    } else if (currentLevel === 'province' && selectedProvince) {
+      return safeEvents.filter(event => event.province === selectedProvince && event.city === regionName);
+    } else if (currentLevel === 'city' && selectedProvince && selectedCity) {
+      return safeEvents.filter(event => event.province === selectedProvince && event.city === selectedCity && event.district === regionName);
+    }
+    return [];
+  };
 
   console.log('过滤后的有配速数据的赛事数量：', recentEvents.length);
   console.log('有配速数据的赛事详情：', recentEvents.map(e => ({
@@ -460,6 +398,148 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
     },
   };
 
+  // 地图加载和注册逻辑
+  useEffect(() => {
+    const loadMap = async () => {
+      try {
+        setMapLoaded(false);
+        let geoJson: any = null;
+        let mapName = '';
+        
+        if (currentLevel === 'country') {
+          // 加载中国地图
+          const response = await fetch('/maps/china.json');
+          if (!response.ok) {
+            throw new Error('加载中国地图失败');
+          }
+          geoJson = await response.json();
+          mapName = 'china';
+        } else if (currentLevel === 'province' && selectedProvince) {
+          // 加载省份地图
+          const provinceCode = provinceCodeMap[selectedProvince];
+          if (!provinceCode) {
+            throw new Error(`未找到省份代码: ${selectedProvince}`);
+          }
+          const response = await fetch(`/maps/${provinceCode}_full.json`);
+          if (!response.ok) {
+            throw new Error(`加载省份地图失败: ${selectedProvince}`);
+          }
+          geoJson = await response.json();
+          mapName = provinceCode;
+        } else if (currentLevel === 'city' && selectedProvince && selectedCity) {
+          // 加载城市地图
+          const cityCode = cityCodeMap[selectedCity];
+          if (!cityCode) {
+            throw new Error(`未找到城市代码: ${selectedCity}`);
+          }
+          const response = await fetch(`/maps/${cityCode}_full.json`);
+          if (!response.ok) {
+            throw new Error(`加载城市地图失败: ${selectedCity}`);
+          }
+          geoJson = await response.json();
+          mapName = cityCode;
+        }
+        
+        console.log('加载的原始GeoJSON数据:', geoJson);
+        
+        // 使用echarts.registerMap注册地图数据
+        if (geoJson) {
+          echarts.registerMap(mapName, geoJson);
+          console.log('地图已注册:', mapName);
+        } else {
+          console.error('GeoJSON数据为空');
+        }
+        
+        setCurrentMapName(mapName);
+        setMapLoaded(true);
+      } catch (error) {
+        console.error('加载地图失败:', error);
+        setMapLoaded(false);
+      }
+    };
+
+    loadMap();
+  }, [currentLevel, selectedProvince, selectedCity]); // eslint-disable-next-line react-hooks/exhaustive-deps
+
+  // 地图配置选项函数
+  const getMapOption = () => {
+    // 根据当前级别获取对应的数据
+    let mapData: Array<{ name: string; value: number }> = [];
+    let mapTitle = '中国马拉松赛事分布';
+    
+    if (currentLevel === 'country') {
+      // 全国地图显示省份数据
+      mapData = getProvinceData();
+      mapTitle = '中国马拉松赛事分布';
+    } else if (currentLevel === 'province' && selectedProvince) {
+      // 省份地图显示城市数据
+      mapData = getCityData(selectedProvince);
+      mapTitle = `${selectedProvince}马拉松赛事分布`;
+    } else if (currentLevel === 'city' && selectedProvince && selectedCity) {
+      // 城市地图显示区县数据
+      mapData = getDistrictData(selectedProvince, selectedCity);
+      mapTitle = `${selectedCity}马拉松赛事分布`;
+    }
+
+    // 使用registerMap注册的地图，直接使用map名称
+    return {
+      title: {
+        text: mapTitle,
+        left: 'center',
+        textStyle: {
+          fontSize: 16,
+          fontWeight: 'bold'
+        }
+      },
+      tooltip: {
+        trigger: 'item',
+        show: false, // 禁用默认tooltip，使用自定义悬浮提示
+        formatter: (params: any) => {
+          if (params.value > 0) {
+            return `${params.name}<br/>赛事数量: ${params.value}`;
+          }
+          return `${params.name}<br/>暂无赛事`;
+        }
+      },
+      visualMap: {
+        min: 0,
+        max: Math.max(...mapData.map(d => d.value), 1),
+        left: 'left',
+        top: 'bottom',
+        text: ['多', '少'],
+        calculable: true,
+        inRange: {
+          color: ['#E0E0E0', '#FFF59D', '#FFEB3B', '#FFC107', '#FF9800']
+        }
+      },
+      series: [{
+        name: '赛事数量',
+        type: 'map',
+        map: currentMapName,
+        data: mapData,
+        roam: true,
+        zoom: 1.2,
+        label: {
+          show: true,
+          fontSize: 10
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 12
+          },
+          itemStyle: {
+            areaColor: '#F6C12C'
+          }
+        },
+        itemStyle: {
+          borderColor: '#999',
+          borderWidth: 0.5
+        }
+      }]
+    };
+  };
+
   // 如果没有数据，显示提示
   if (safeEvents.length === 0) {
     return (
@@ -476,214 +556,126 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
   console.log('lineChartData.datasets[0].data 长度：', lineChartData.datasets[0].data.length);
   console.log('lineChartData.datasets[0].data 内容：', lineChartData.datasets[0].data);
 
-  // 统计省份数据
-  const getProvinceData = () => {
-    const provinceCount: Record<string, number> = {};
-    safeEvents.forEach(event => {
-      if (event.province && event.province.trim()) {
-        const province = event.province.trim();
-        provinceCount[province] = (provinceCount[province] || 0) + 1;
-      }
-    });
-    return Object.keys(provinceCount).map(name => ({
-      name,
-      value: provinceCount[name]
-    }));
-  };
-
-  // 统计指定省份的城市数据
-  const getCityData = (province: string) => {
-    const cityCount: Record<string, number> = {};
-    safeEvents.forEach(event => {
-      if (event.province === province && event.city && event.city.trim()) {
-        const city = event.city.trim();
-        cityCount[city] = (cityCount[city] || 0) + 1;
-      }
-    });
-    return Object.keys(cityCount).map(name => ({
-      name,
-      value: cityCount[name]
-    }));
-  };
-
-  // 统计区县数据（如果有区县数据的话）
-  const getDistrictData = () => {
-    const districtCount: Record<string, number> = {};
-    safeEvents.forEach(event => {
-      if (event.district && event.district.trim()) {
-        const district = event.district.trim();
-        districtCount[district] = (districtCount[district] || 0) + 1;
-      }
-    });
-    return Object.keys(districtCount).map(name => ({
-      name,
-      value: districtCount[name]
-    }));
-  };
-
-  const provinceData = getProvinceData();
-  const districtData = getDistrictData();
-
-  // 根据当前级别决定显示的数据
-  let mapData: Array<{ name: string; value: number }> = [];
-
-  if (currentLevel === 'country') {
-    // 全国地图显示省份数据
-    mapData = provinceData;
-    console.log('全国地图，使用省份数据');
-  } else if (currentLevel === 'province' && selectedProvince) {
-    // 省份地图显示城市数据
-    const cityData = getCityData(selectedProvince);
-    mapData = cityData;
-    console.log(`省份地图 ${selectedProvince}，使用城市数据：`, cityData);
-  } else if (currentLevel === 'district' && selectedProvince && selectedCity) {
-    // 区县地图显示当前省份和城市的区县数据
-    const districtData = getDistrictData(selectedProvince, selectedCity);
-    mapData = districtData;
-    console.log(`区县地图 ${selectedCity}，使用区县数据：`, districtData);
-  }
-
-  // 获取地图配置
-  const getMapOption = () => {
-    if (!mapLoaded) {
-      return {
-        title: {
-          text: '赛事地点分布',
-          left: 'center'
-        },
-        graphic: {
-          type: 'text',
-          left: 'center',
-          top: 'middle',
-          style: {
-            text: '地图加载中...',
-            fontSize: 16,
-            fill: '#666'
-          }
-        },
-        series: []
-      };
-    }
-
-    if (mapData.length === 0) {
-      return {
-        title: {
-          text: currentLevel === 'country' ? '赛事地点分布（全国）' : `赛事地点分布（${selectedProvince}）`,
-          left: 'center'
-        },
-        graphic: {
-          type: 'text',
-          left: 'center',
-          top: 'middle',
-          style: {
-            text: '暂无地点数据',
-            fontSize: 16,
-            fill: '#666'
-          }
-        },
-        series: [{
-          type: 'map',
-          map: currentMapNameState,
-          data: []
-        }]
-      };
-    }
-
-    const maxValue = Math.max(...mapData.map(d => d.value), 1);
-
-    return {
-      title: {
-        text: currentLevel === 'country' ? '赛事地点分布（全国）' : `赛事地点分布（${selectedProvince}）`,
-        left: 'center'
-      },
-      tooltip: {
-        trigger: 'item',
-        formatter: (params: any) => {
-          if (params.value > 0) {
-            return `${params.name}<br/>赛事数量: ${params.value}`;
-          }
-          return `${params.name}<br/>暂无赛事`;
-        }
-      },
-      visualMap: {
-        min: 0,
-        max: maxValue,
-        left: 'left',
-        top: 'bottom',
-        text: ['多', '少'],
-        calculable: true,
-        inRange: {
-          color: ['#E0E0E0', '#FFF59D', '#FFEB3B', '#FFC107', '#FF9800']
-        }
-      },
-      series: [{
-        name: '赛事地点',
-        type: 'map',
-        map: currentMapNameState,
-        roam: true,
-        zoom: 1.2,
-        label: {
-          show: true,
-          fontSize: 10
-        },
-        emphasis: {
-          label: {
-            show: true
-          },
-          itemStyle: {
-            areaColor: '#F6C12C'
-          }
-        },
-        itemStyle: {
-          borderColor: '#999',
-          borderWidth: 0.5
-        },
-        data: mapData
-      }]
-    };
-  };
-
-  // 处理地图点击事件
+  // 地图点击事件处理
   const handleMapClick = (params: any) => {
     console.log('地图点击事件：', params);
     console.log('当前级别:', currentLevel, '选中省份:', selectedProvince, '选中城市:', selectedCity);
     
     if (currentLevel === 'country') {
       // 点击省份，进入省份地图
-      if (params.value > 0) {
-        const provinceName = params.name;
-        console.log('点击省份:', provinceName, '省份代码:', provinceCodeMap[provinceName]);
-        setSelectedProvince(provinceName);
+      const clickedProvince = params.name;
+      setSelectedProvince(clickedProvince);
+      
+      // 直辖市特殊处理：直接进入城市级别
+      if (isMunicipality(clickedProvince)) {
+        setSelectedCity(clickedProvince);
+        setCurrentLevel('city');
+      } else {
         setCurrentLevel('province');
-        // 重置地图加载状态，让 useEffect 重新加载省份地图
-        setMapLoaded(false);
       }
-    } else if (currentLevel === 'province') {
-      // 点击省份名称区域，返回全国地图
+    } else if (currentLevel === 'province' && selectedProvince) {
+      // 点击省份名称，返回全国地图
       if (params.name === selectedProvince) {
         setCurrentLevel('country');
         setSelectedProvince('');
         setSelectedCity('');
-        setMapLoaded(false);
-      } else if (params.value > 0) {
-        // 点击城市，进入区县地图
-        const cityName = params.name;
-        console.log('点击城市:', cityName, '城市代码:', cityCodeMap[cityName]);
-        setSelectedCity(cityName);
-        setCurrentLevel('district');
-        setMapLoaded(false);
+      } else {
+        // 点击城市，进入城市地图
+        setSelectedCity(params.name);
+        setCurrentLevel('city');
       }
-    } else if (currentLevel === 'district') {
-      // 点击区县地图，返回省份地图
-      setCurrentLevel('province');
-      setSelectedCity('');
-      setMapLoaded(false);
+    } else if (currentLevel === 'city' && selectedProvince && selectedCity) {
+      // 点击城市名称，返回上一级
+      if (isMunicipality(selectedProvince)) {
+        // 直辖市返回全国地图
+        setCurrentLevel('country');
+        setSelectedProvince('');
+        setSelectedCity('');
+      } else {
+        // 其他城市返回省份地图
+        setCurrentLevel('province');
+        setSelectedCity('');
+      }
     }
   };
 
-  // 图表准备完成后的回调
-  const onChartReady = (echarts: any) => {
-    echarts.on('click', handleMapClick);
+  // 地图鼠标悬停事件处理
+  const handleMapMouseover = (params: any) => {
+    console.log('地图悬停事件：', params);
+    const regionName = params.name;
+    const events = getEventsByRegion(regionName);
+    
+    if (events.length > 0) {
+      setHoverTooltip({
+        show: true,
+        x: 0, // 初始位置，会在mousemove中更新
+        y: 0,
+        events: events
+      });
+    }
+  };
+
+  // 地图鼠标移动事件处理
+  const handleMapMousemove = (params: any) => {
+    if (hoverTooltip.show && params.event) {
+      setHoverTooltip(prev => ({
+        ...prev,
+        x: params.event.offsetX,
+        y: params.event.offsetY
+      }));
+    }
+  };
+
+  // 地图鼠标离开事件处理
+  const handleMapMouseout = () => {
+    setHoverTooltip({
+      show: false,
+      x: 0,
+      y: 0,
+      events: []
+    });
+  };
+
+  // 导航机制实现
+  const renderNavigation = () => {
+    return (
+      <div style={{ marginBottom: '10px', textAlign: 'center' }}>
+        {currentLevel !== 'country' && (
+          <button 
+            onClick={() => {
+              setMapLoaded(false);
+              if (currentLevel === 'city') {
+                if (isMunicipality(selectedProvince)) {
+                  // 直辖市从城市级别直接返回全国
+                  setCurrentLevel('country');
+                  setSelectedProvince('');
+                  setSelectedCity('');
+                } else {
+                  // 其他城市返回省份级别
+                  setCurrentLevel('province');
+                  setSelectedCity('');
+                }
+              } else if (currentLevel === 'province') {
+                // 从省份级别返回全国
+                setCurrentLevel('country');
+                setSelectedProvince('');
+                setSelectedCity('');
+              }
+            }}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#B22A2A',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            {isMunicipality(selectedProvince) && currentLevel === 'city' ? '返回全国地图' : '返回上一级'}
+          </button>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -709,67 +701,57 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
           </p>
         </div>
       )}
-      <div style={{ height: '500px', marginTop: '20px' }}>
-        {currentLevel !== 'country' && (
-          <div style={{ marginBottom: '10px', textAlign: 'center' }}>
-            <button 
-              onClick={() => {
-                if (currentLevel === 'district') {
-                  // 从区县级别返回省份级别
-                  setCurrentLevel('province');
-                  setSelectedCity('');
-                } else if (currentLevel === 'province') {
-                  // 从省份级别返回全国级别
-                  setCurrentLevel('country');
-                  setSelectedProvince('');
-                  setSelectedCity('');
-                }
-                setMapLoaded(false);
-              }}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#B22A2A',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              {currentLevel === 'district' ? '返回省份地图' : '返回全国地图'}
-            </button>
-          </div>
-        )}
-        {mapLoaded && currentMapNameState ? (
+      
+      {/* 地图展示区域 */}
+      <div style={{ height: '500px', marginTop: '20px', position: 'relative' }}>
+        {renderNavigation()}
+        {mapLoaded ? (
           <ReactECharts
-            key={`${currentLevel}_${selectedProvince}_${selectedCity}_${currentMapNameState}_${mapLoaded}`}
-            ref={chartRef}
+            key={`${currentLevel}_${selectedProvince}_${selectedCity}`}
             option={getMapOption()}
             style={{ height: '100%', width: '100%' }}
-            onChartReady={onChartReady}
+            onChartReady={(echartsInstance: any) => {
+              echartsInstance.on('click', handleMapClick);
+              echartsInstance.on('mouseover', handleMapMouseover);
+              echartsInstance.on('mousemove', handleMapMousemove);
+              echartsInstance.on('mouseout', handleMapMouseout);
+            }}
             notMerge={true}
             lazyUpdate={false}
           />
         ) : (
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            height: '100%',
-            color: '#666',
-            fontSize: '16px'
-          }}>
-            <div>地图加载中...</div>
-            {currentLevel === 'province' && selectedProvince && (
-              <div style={{ marginTop: '10px', fontSize: '14px', color: '#999' }}>
-                正在加载 {selectedProvince} 地图
-              </div>
-            )}
-            {currentLevel === 'district' && selectedCity && (
-              <div style={{ marginTop: '10px', fontSize: '14px', color: '#999' }}>
-                正在加载 {selectedCity} 地图
-              </div>
-            )}
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', backgroundColor: '#f5f5f5' }}>
+            <p style={{ color: '#666' }}>地图加载中...</p>
+          </div>
+        )}
+        
+        {/* 自定义悬浮提示框 */}
+        {hoverTooltip.show && (
+          <div
+            style={{
+              position: 'fixed',
+              left: `${hoverTooltip.x + 15}px`,
+              top: `${hoverTooltip.y + 15}px`,
+              backgroundColor: 'rgba(255,255,255, 0.95)',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              padding: '10px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+              maxWidth: '300px',
+              zIndex: 1000,
+              pointerEvents: 'none'
+            }}
+          >
+            <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#B22A2A' }}>
+              {hoverTooltip.events.length > 0 ? `${hoverTooltip.events[0].province || hoverTooltip.events[0].city || hoverTooltip.events[0].district}的赛事` : '暂无赛事'}
+            </div>
+            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+              {hoverTooltip.events.map((event, index) => (
+                <div key={index} style={{ fontSize: '12px', marginBottom: '4px', color: '#333' }}>
+                  • {event.event_name}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
