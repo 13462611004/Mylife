@@ -730,8 +730,8 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
           <div
             style={{
               position: 'fixed',
-              left: `${hoverTooltip.x + 15}px`,
-              top: `${hoverTooltip.y + 15}px`,
+              left: `${hoverTooltip.x + 10}px`,
+              top: `${hoverTooltip.y + 10}px`,
               backgroundColor: 'rgba(255,255,255, 0.95)',
               border: '1px solid #ddd',
               borderRadius: '4px',
