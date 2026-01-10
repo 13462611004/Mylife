@@ -8,7 +8,7 @@ class MarathonListSerializer(serializers.ModelSerializer):
         model = Marathon
         fields = [
             'id', 'event_name', 'event_date', 'location', 
-            'province', 'city', 'event_type', 'finish_time', 'pace'
+            'province', 'city', 'district', 'event_type', 'finish_time', 'pace'
         ]
 
 """马拉松赛事完整序列化器（用于详情视图）"""
@@ -117,7 +117,7 @@ class MarathonRegistrationListSerializer(serializers.ModelSerializer):
         model = MarathonRegistration
         fields = [
             'id', 'event_name', 'event_date', 'location',
-            'province', 'city', 'event_type', 'registration_status', 'registration_fee'
+            'province', 'city', 'district', 'event_type', 'registration_status', 'registration_fee'
         ]
 
 """马拉松报名赛事完整序列化器（用于详情视图）"""

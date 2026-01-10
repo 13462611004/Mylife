@@ -277,39 +277,50 @@ const Admin: React.FC = () => {
     setCities([]);
     setDistricts([]);
     
-    // 如果有省份，先加载城市列表
-    if (record.province) {
-      const selectedProvince = provinces.find((p: any) => p.name === record.province);
-      if (selectedProvince) {
-        await fetchCities(selectedProvince.id);
-        // 等待城市加载完成后再加载区县
-        setTimeout(async () => {
-          if (record.city) {
-            const cityList = await apiClient.get(`/api/marathon/city/?province=${selectedProvince.id}`);
-            const selectedCity = Array.isArray(cityList) ? cityList.find((c: any) => c.name === record.city) : null;
-            if (selectedCity) {
-              await fetchDistricts(selectedCity.id);
-            }
-          }
-        }, 100);
-      }
-    }
-    
-    // 设置表单值
+    // 先初始化表单，设置非级联字段
     form.setFieldsValue({
       event_name: record.event_name,
       event_date: dayjs(record.event_date),
       location: record.location,
-      province: record.province,
-      city: record.city,
-      district: record.district,
       event_type: record.event_type,
       finish_time: record.finish_time,
       pace: record.pace,
       description: record.description,
       event_log: record.event_log,
+      province: undefined,
+      city: undefined,
+      district: undefined,
     });
     
+    // 如果有省份，先加载城市列表
+    if (record.province) {
+      const selectedProvince = provinces.find((p: any) => p.name === record.province);
+      if (selectedProvince) {
+        // 1. 加载城市列表
+        await fetchCities(selectedProvince.id);
+        
+        // 2. 城市列表加载完成后，设置省份值
+        form.setFieldsValue({ province: record.province });
+        
+        // 3. 如果有城市，加载区县列表
+        if (record.city) {
+          // 从已加载的城市列表中查找对应的城市对象
+          const selectedCity = cities.find((c: any) => c.name === record.city);
+          if (selectedCity) {
+            // 4. 加载区县列表
+            await fetchDistricts(selectedCity.id);
+            
+            // 5. 区县列表加载完成后，设置城市和区县值
+            form.setFieldsValue({
+              city: record.city,
+              district: record.district
+            });
+          }
+        }
+      }
+    }
+    
+    // 显示表单
     setModalVisible(true);
   };
 
@@ -329,13 +340,13 @@ const Admin: React.FC = () => {
       const formData = new FormData();
       formData.append('event_name', values.event_name);
       formData.append('event_date', values.event_date.format('YYYY-MM-DD'));
-      formData.append('location', values.location || '');
+      formData.append('location', values.location);
       formData.append('province', values.province || '');
       formData.append('city', values.city || '');
       formData.append('district', values.district || '');
       formData.append('event_type', values.event_type);
-      formData.append('finish_time', values.finish_time || '');
-      formData.append('pace', values.pace || '');
+      formData.append('finish_time', values.finish_time);
+      formData.append('pace', values.pace);
       formData.append('description', values.description || '');
       formData.append('event_log', values.event_log || '');
 
@@ -1230,6 +1241,7 @@ const Admin: React.FC = () => {
           <Form.Item
             name="location"
             label="赛事地点"
+            rules={[{ required: true, message: '请输入赛事地点' }]}
           >
             <Input placeholder="请输入赛事地点" />
           </Form.Item>
@@ -1311,6 +1323,7 @@ const Admin: React.FC = () => {
               <Form.Item
                 name="finish_time"
                 label="完赛时间"
+                rules={[{ required: true, message: '请输入完赛时间' }]}
               >
                 <Input placeholder="例如：3:45:30" />
               </Form.Item>

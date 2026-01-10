@@ -20,13 +20,13 @@ const getBaseURL = (): string => {
   const currentHost = window.location.hostname;
   const currentPort = window.location.port;
   
-  // 如果是公网IP，使用公网IP的8000端口
+  // 如果是公网IP，使用公网IP的8001端口
   if (currentHost === '8.153.95.63' || currentHost === '172.31.180.1') {
-    return `http://${currentHost}:8000`;
+    return `http://${currentHost}:8001`;
   }
   
   // 默认使用 localhost（本地开发）
-  return 'http://localhost:8000';
+  return 'http://localhost:8001';
 };
 
 // 创建Axios实例

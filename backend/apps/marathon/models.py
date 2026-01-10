@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 """地区数据模型"""
 class Province(models.Model):
@@ -10,6 +11,27 @@ class Province(models.Model):
         verbose_name = "省份"
         verbose_name_plural = "省份"
         ordering = ['id']
+    
+    def clean(self):
+        """验证省份名称格式，确保与地图需要的格式一致"""
+        # 地图数据中使用的完整格式名称列表
+        full_format_provinces = [
+            '北京市', '天津市', '上海市', '重庆市',
+            '河北省', '山西省', '辽宁省', '吉林省', '黑龙江省',
+            '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省',
+            '河南省', '湖北省', '湖南省', '广东省', '广西壮族自治区', '海南省',
+            '四川省', '贵州省', '云南省', '西藏自治区', '陕西省', '甘肃省',
+            '青海省', '宁夏回族自治区', '新疆维吾尔自治区', '内蒙古自治区',
+            '香港特别行政区', '澳门特别行政区', '台湾省'
+        ]
+        
+        if self.name not in full_format_provinces:
+            raise ValidationError(f"省份名称格式错误，必须使用完整格式（如'北京市'），当前值：{self.name}")
+    
+    def save(self, *args, **kwargs):
+        """保存前进行验证"""
+        self.clean()
+        super().save(*args, **kwargs)
     
     def __str__(self):
         return self.name
@@ -25,6 +47,21 @@ class City(models.Model):
         verbose_name_plural = "城市"
         ordering = ['province', 'id']
     
+    def clean(self):
+        """验证城市名称格式，确保与地图需要的格式一致"""
+        # 地图数据通常使用完整格式，如"成都市"、"西安市"
+        # 检查是否有完整的后缀
+        if not self.name.endswith(('市', '县', '区', '自治州', '盟', '地区', '自治县')):
+            # 对于直辖市（北京市、上海市等），其下的市辖区名称可能没有后缀
+            # 如"东城区"、"黄浦区"等，这些是合法的
+            if not (self.province.name in ['北京市', '天津市', '上海市', '重庆市'] and self.name.endswith('区')):
+                raise ValidationError(f"城市名称格式错误，必须使用完整格式（如'成都市'），当前值：{self.name}")
+    
+    def save(self, *args, **kwargs):
+        """保存前进行验证"""
+        self.clean()
+        super().save(*args, **kwargs)
+    
     def __str__(self):
         return f"{self.province.name} - {self.name}"
 
@@ -38,6 +75,18 @@ class District(models.Model):
         verbose_name = "区/县"
         verbose_name_plural = "区/县"
         ordering = ['city', 'id']
+    
+    def clean(self):
+        """验证区县名称格式，确保与地图需要的格式一致"""
+        # 地图数据通常使用完整格式，如"浦东新区"、"武侯区"
+        # 检查是否有完整的后缀
+        if not self.name.endswith(('区', '县', '市', '自治县', '自治旗')):
+            raise ValidationError(f"区县名称格式错误，必须使用完整格式（如'浦东新区'），当前值：{self.name}")
+    
+    def save(self, *args, **kwargs):
+        """保存前进行验证"""
+        self.clean()
+        super().save(*args, **kwargs)
     
     def __str__(self):
         return f"{self.city.name} - {self.name}"
@@ -168,29 +217,47 @@ class Marathon(models.Model):
 
     def save(self, *args, **kwargs):
         """保存时自动同步外键字段和字符串字段，并标准化为地图需要的格式"""
-        # 省份名称标准化：优先从外键获取，否则标准化字符串字段
-        if self.province_obj:
-            province_name = self.province_obj.name
-            self.province = self.normalize_province_name(province_name)
-        elif self.province:
-            # 如果没有外键对象，但province字段有值，也要标准化
+        # 1. 先标准化字符串字段
+        if self.province:
             self.province = self.normalize_province_name(self.province)
-        
-        # 城市名称标准化：优先从外键获取，否则标准化字符串字段
-        if self.city_obj:
-            city_name = self.city_obj.name
-            self.city = self.normalize_city_name(city_name)
-        elif self.city:
-            # 如果没有外键对象，但city字段有值，也要标准化
+        if self.city:
             self.city = self.normalize_city_name(self.city)
-        
-        # 区县名称标准化：优先从外键获取，否则标准化字符串字段
-        if self.district_obj:
-            district_name = self.district_obj.name
-            self.district = self.normalize_district_name(district_name)
-        elif self.district:
-            # 如果没有外键对象，但district字段有值，也要标准化
+        if self.district:
             self.district = self.normalize_district_name(self.district)
+        
+        # 3. 字符串字段 → 外键字段：当字符串字段有值时，查找并更新外键字段
+        # 更新省份外键
+        if self.province:
+            try:
+                province_obj = Province.objects.get(name=self.province)
+                self.province_obj = province_obj
+            except Province.DoesNotExist:
+                # 如果找不到匹配的省份，不更新外键
+                pass
+        # 更新城市外键
+        if self.city and self.province_obj:
+            try:
+                city_obj = City.objects.get(name=self.city, province=self.province_obj)
+                self.city_obj = city_obj
+            except City.DoesNotExist:
+                # 如果找不到匹配的城市，不更新外键
+                pass
+        # 更新区县外键
+        if self.district and self.city_obj:
+            try:
+                district_obj = District.objects.get(name=self.district, city=self.city_obj)
+                self.district_obj = district_obj
+            except District.DoesNotExist:
+                # 如果找不到匹配的区县，不更新外键
+                pass
+        
+        # 2. 外键字段 → 字符串字段：如果字符串字段为空，但有外键对象，则使用外键对象的名称
+        if not self.province and self.province_obj:
+            self.province = self.normalize_province_name(self.province_obj.name)
+        if not self.city and self.city_obj:
+            self.city = self.normalize_city_name(self.city_obj.name)
+        if not self.district and self.district_obj:
+            self.district = self.normalize_district_name(self.district_obj.name)
         
         super().save(*args, **kwargs)
     
@@ -247,9 +314,14 @@ class MarathonRegistration(models.Model):
     event_name = models.CharField(max_length=100, verbose_name="赛事名称")
     event_date = models.DateField(verbose_name="赛事日期")
     location = models.CharField(max_length=100, verbose_name="赛事地点")
+    # 原有的字符串字段（保留用于API返回）
     province = models.CharField(max_length=50, verbose_name="省份", blank=True)
     city = models.CharField(max_length=50, verbose_name="城市", blank=True)
     district = models.CharField(max_length=50, blank=True, verbose_name="区/县")
+    # 新的外键字段（用于管理后台级联选择）
+    province_obj = models.ForeignKey(Province, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="省份", related_name='registration_provinces')
+    city_obj = models.ForeignKey(City, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="城市", related_name='registration_cities')
+    district_obj = models.ForeignKey(District, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="区/县", related_name='registration_districts')
     event_type = models.CharField(max_length=10, choices=EVENT_TYPE_CHOICES, verbose_name="赛事类型", default='full')
     registration_status = models.CharField(max_length=20, choices=REGISTRATION_STATUS_CHOICES, verbose_name="报名状态", default='preparing')
     registration_date = models.DateField(verbose_name="报名时间", null=True, blank=True)
@@ -353,18 +425,48 @@ class MarathonRegistration(models.Model):
         return district
 
     def save(self, *args, **kwargs):
-        """保存时标准化地理名称为地图需要的格式"""
-        # 标准化省份名称
+        """保存时自动同步外键字段和字符串字段，并标准化为地图需要的格式"""
+        # 1. 先标准化字符串字段
         if self.province:
             self.province = self.normalize_province_name(self.province)
-        
-        # 标准化城市名称
         if self.city:
             self.city = self.normalize_city_name(self.city)
-        
-        # 标准化区县名称
         if self.district:
             self.district = self.normalize_district_name(self.district)
+        
+        # 3. 字符串字段 → 外键字段：当字符串字段有值时，查找并更新外键字段
+        # 更新省份外键
+        if self.province:
+            try:
+                province_obj = Province.objects.get(name=self.province)
+                self.province_obj = province_obj
+            except Province.DoesNotExist:
+                # 如果找不到匹配的省份，不更新外键
+                pass
+        # 更新城市外键
+        if self.city and self.province_obj:
+            try:
+                city_obj = City.objects.get(name=self.city, province=self.province_obj)
+                self.city_obj = city_obj
+            except City.DoesNotExist:
+                # 如果找不到匹配的城市，不更新外键
+                pass
+        # 更新区县外键
+        if self.district and self.city_obj:
+            try:
+                district_obj = District.objects.get(name=self.district, city=self.city_obj)
+                self.district_obj = district_obj
+            except District.DoesNotExist:
+                # 如果找不到匹配的区县，不更新外键
+                pass
+        
+        # 2. 外键字段 → 字符串字段：如果字符串字段为空，但有外键对象，则使用外键对象的名称
+        if not self.province and self.province_obj:
+            self.province = self.normalize_province_name(self.province_obj.name)
+        if not self.city and self.city_obj:
+            self.city = self.normalize_city_name(self.city_obj.name)
+        if not self.district and self.district_obj:
+            self.district = self.normalize_district_name(self.district_obj.name)
         
         super().save(*args, **kwargs)
     
