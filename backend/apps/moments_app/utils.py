@@ -98,12 +98,20 @@ def extract_video_from_live_photo(image_path):
         
         # 如果 mdat_size = 1，说明使用 64 位大小
         if mdat_size == 1:
-            # 读取 64 位大小
-            mdat_size = int.from_bytes(file_data[mdat_pos+8:mdat_pos+16], 'big')
-            logger.info(f'mdat box uses 64-bit size: {mdat_size} bytes')
-        
-        # 提取完整的视频数据
-        video_data = file_data[mp4_pos:mdat_pos + mdat_size]
+            # 读取 64 位大小字段
+            mdat_size_8byte = int.from_bytes(file_data[mdat_pos+8:mdat_pos+16], 'big')
+            logger.info(f'mdat box 64-bit size field: {mdat_size_8byte}')
+            
+            # 如果 64 位大小不合理（超出文件大小），直接使用文件末尾的数据
+            if mdat_size_8byte > len(file_data):
+                logger.info(f'mdat box size is invalid, using file tail data')
+                video_data = file_data[mp4_pos:]
+            else:
+                # 提取完整的视频数据
+                video_data = file_data[mp4_pos:mdat_pos + mdat_size_8byte]
+        else:
+            # 提取完整的视频数据
+            video_data = file_data[mp4_pos:mdat_pos + mdat_size]
         
         logger.info(f'Extracted video data: {len(video_data)} bytes')
         
