@@ -23,27 +23,33 @@ def extract_video_from_live_photo(image_path):
             f.seek(0, 2)  # 移动到文件尾部
             file_size = f.tell()
             
-            # 读取文件的最后 1MB 数据
-            f.seek(max(0, file_size - 1024 * 1024))
+            # 读取文件的最后 2MB 数据（视频数据可能在这个范围内）
+            f.seek(max(0, file_size - 2 * 1024 * 1024))
             tail_data = f.read()
             
             logger.info(f'File size: {file_size}, Tail data size: {len(tail_data)}')
             
             # 检查尾部数据是否为有效的视频文件
             # MP4 文件的魔数是 00 00 00 18 66 74 70 79 6D 70 61
-            # MOV 文件的魔数是 00 00 00 14 66 74 79 64
             if len(tail_data) > 1024:
-                # 检查是否为 MP4 文件
-                if tail_data.startswith(b'\x00\x00\x00\x18\x66\x74\x79\x70\x6d\x70\x34\x32') or tail_data.startswith(b'\x00\x00\x00\x20\x66\x74\x79\x70\x6d\x70\x34\x32'):
-                    logger.info(f'Found MP4 video data in file tail')
-                    video_data = tail_data
-                # 检查是否为 MOV 文件
-                elif tail_data.startswith(b'\x00\x00\x00\x14\x66\x74\x79\x70') or tail_data.startswith(b'\x00\x00\x00\x20\x66\x74\x79\x70'):
-                    logger.info(f'Found MOV video data in file tail')
-                    video_data = tail_data
+                # 在尾部数据中查找 MP4 魔数
+                mp4_magic = b'\x00\x00\x00\x18\x66\x74\x79\x70\x6d\x70\x34\x32'
+                mp4_pos = tail_data.find(mp4_magic)
+                
+                if mp4_pos >= 0:
+                    logger.info(f'Found MP4 video data in file tail at position {mp4_pos}')
+                    video_data = tail_data[mp4_pos:]
                 else:
-                    logger.info(f'Tail data does not look like a video file')
-                    return None
+                    # 尝试其他 MP4 魔数
+                    mp4_magic2 = b'\x00\x00\x00\x18\x66\x74\x79\x70'
+                    mp4_pos = tail_data.find(mp4_magic2)
+                    
+                    if mp4_pos >= 0:
+                        logger.info(f'Found MP4 video data in file tail at position {mp4_pos}')
+                        video_data = tail_data[mp4_pos:]
+                    else:
+                        logger.info(f'Tail data does not look like a video file')
+                        return None
             else:
                 logger.info(f'Tail data is too small to be a video file')
                 return None
