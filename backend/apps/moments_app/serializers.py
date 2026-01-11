@@ -45,7 +45,10 @@ class PostMediaSerializer(serializers.ModelSerializer):
         获取视频文件的完整URL（仅Live Photo）
         """
         if obj.video_file:
-            # 返回视频文件的URL
+            # 返回视频文件的完整URL
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.video_file.url)
             return obj.video_file.url
         return None
 
