@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Image, Tag, Spin, Empty, Pagination, Modal, Button, Space } from 'antd';
-import { PushpinOutlined, CalendarOutlined, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Image, Tag, Spin, Empty, Pagination, Modal, Button, Space, Drawer, Dropdown, Slider } from 'antd';
+import { PushpinOutlined, CalendarOutlined, AppstoreOutlined, UnorderedListOutlined, CaretDownOutlined, PauseOutlined, CaretRightOutlined } from '@ant-design/icons';
 import Navigation from '../components/Common/Navigation';
 import apiClient from '../services/axios';
 import { Post, PaginatedResponse } from '../services/types';
@@ -25,10 +25,31 @@ const Moments: React.FC = () => {
   const [playingStates, setPlayingStates] = useState<Record<number, boolean>>({});
   const [previewMedia, setPreviewMedia] = useState<any>(null);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [rateDrawerOpen, setRateDrawerOpen] = useState(false);
+  const [videoRef, setVideoRef] = useState<HTMLVideoElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
   
   useEffect(() => {
     fetchPosts();
   }, [currentPage]);
+
+  // 格式化时间
+  const formatTime = (seconds: number) => {
+    if (!seconds || isNaN(seconds)) return '00:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // 应用音量变化
+  useEffect(() => {
+    if (videoRef) {
+      videoRef.volume = volume;
+    }
+  }, [volume, videoRef]);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -521,55 +542,134 @@ const Moments: React.FC = () => {
       <Modal
         open={!!previewMedia}
         footer={null}
-        onCancel={() => setPreviewMedia(null)}
+        onCancel={() => {
+          setPreviewMedia(null);
+          setPlaybackRate(1);
+        }}
         width="90%"
         style={{ top: 20 }}
         title={previewMedia?.file ? 'LIVE Photo 预览' : undefined}
-        styles={{ body: { padding: 0 } }}
+        styles={{ body: { padding: 0, background: '#000' } }}
+        closable={true}
       >
         {previewMedia && previewMedia.video_file_url && (
-          <div style={{ position: 'relative', textAlign: 'center' }}>
+          <div style={{ position: 'relative', background: '#000' }}>
             <video
               ref={(el: HTMLVideoElement | null) => {
-                if (el && previewMedia) {
+                if (el) {
+                  setVideoRef(el);
                   el.playbackRate = playbackRate;
                 }
               }}
               src={previewMedia.video_file_url}
               autoPlay
-              controls
               style={{ 
                 width: '100%', 
                 maxHeight: '70vh',
                 display: 'block'
               }}
               playsInline
+              onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+              onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
             />
-            <div style={{ 
+            
+            {/* 自定义控制栏 */}
+            <div style={{
               position: 'absolute',
-              bottom: 60,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'rgba(0,0,0,0.6)',
-              padding: '8px 16px',
-              borderRadius: 8,
-              color: '#fff',
-              fontSize: 14,
+              bottom: 0,
+              left: 0,
+              right: 0,
+              background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+              padding: '20px 16px 16px',
               display: 'flex',
               alignItems: 'center',
-              gap: 8
+              gap: 16
             }}>
-              <span>倍速:</span>
-              {[0.5, 1, 1.25, 1.5, 2].map(rate => (
+              {/* 播放/暂停 */}
+              <Button
+                type="text"
+                icon={isPlaying ? <PauseOutlined /> : <CaretRightOutlined />}
+                onClick={() => videoRef?.paused ? videoRef.play() : videoRef?.pause()}
+                style={{ color: '#fff', fontSize: 20 }}
+              />
+              
+              {/* 时间进度 */}
+              <span style={{ color: '#fff', fontSize: 12, minWidth: 100 }}>
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+              
+              {/* 进度条 */}
+              <div style={{ flex: 1, cursor: 'pointer' }}>
+                <div style={{ 
+                  width: '100%', 
+                  height: 4, 
+                  background: 'rgba(255,255,255,0.3)',
+                  borderRadius: 2,
+                  overflow: 'hidden'
+                }}>
+                  <div style={{ 
+                    width: `${duration ? (currentTime / duration) * 100 : 0}%`,
+                    height: '100%',
+                    background: '#1890ff',
+                    transition: 'width 0.1s'
+                  }} />
+                </div>
+              </div>
+              
+              {/* 音量控制 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Slider
+                  min={0}
+                  max={1}
+                  step={0.1}
+                  value={volume}
+                  onChange={setVolume}
+                  style={{ width: 80 }}
+                  tooltip={{ formatter: null }}
+                />
+              </div>
+              
+              {/* 倍速选择器 */}
+              <Dropdown
+                overlay={
+                  <div style={{
+                    background: 'rgba(0,0,0,0.9)',
+                    borderRadius: 8,
+                    padding: '8px 0',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                  }}>
+                    {[0.5, 0.75, 1, 1.25, 1.5, 2].map(rate => (
+                      <div
+                        key={rate}
+                        onClick={() => {
+                          setPlaybackRate(rate);
+                          if (videoRef) videoRef.playbackRate = rate;
+                        }}
+                        style={{
+                          padding: '8px 20px',
+                          color: playbackRate === rate ? '#1890ff' : '#fff',
+                          cursor: 'pointer',
+                          fontWeight: playbackRate === rate ? 'bold' : 'normal',
+                          textAlign: 'center'
+                        }}
+                      >
+                        {rate}x
+                      </div>
+                    ))}
+                  </div>
+                }
+                trigger={['click']}
+                placement="topRight"
+              >
                 <Button
-                  key={rate}
-                  size="small"
-                  type={playbackRate === rate ? 'primary' : 'default'}
-                  onClick={() => setPlaybackRate(rate)}
+                  type="text"
+                  style={{ color: '#fff', fontSize: 12 }}
                 >
-                  {rate}x
+                  {playbackRate}x <CaretDownOutlined />
                 </Button>
-              ))}
+              </Dropdown>
             </div>
           </div>
         )}
