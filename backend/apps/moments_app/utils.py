@@ -45,21 +45,15 @@ def extract_video_from_live_photo(image_path):
             logger.info(f'Found Container XMP data: {container_data}')
             
             # 检查是否有MotionPhoto容器
-            motion_photo_found = False
             if isinstance(container_data, list):
                 for item in container_data:
                     if isinstance(item, dict) and item.get('Semantic') == 'MotionPhoto':
-                        motion_photo_found = True
                         logger.info(f'Found MotionPhoto container item: {item}')
                         # 提取视频数据
                         if 'Data' in item:
                             video_data = item['Data']
                             logger.info(f'Found video data in MotionPhoto container, size: {len(video_data) if isinstance(video_data, (str, bytes)) else "unknown"}')
                             break
-            
-            if motion_photo_found and video_data:
-                logger.info(f'Successfully extracted video from MotionPhoto container')
-                break
         
         # 如果没有找到MotionPhoto，继续检查常见的视频标签
         if not video_data:
