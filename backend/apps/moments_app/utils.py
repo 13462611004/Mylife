@@ -24,8 +24,20 @@ def extract_video_from_live_photo(image_path):
             logger.info(f'No EXIF data found in {image_path}')
             return None
         
+        # 记录所有 EXIF 标签，用于调试
+        logger.info(f'EXIF tags found: {list(exif_data.keys())}')
+        for tag, value in exif_data.items():
+            try:
+                value_str = str(value)[:200] if len(str(value)) > 200 else str(value)
+                logger.info(f'EXIF tag {tag}: type={type(value).__name__}, value={value_str}')
+            except Exception as e:
+                logger.warning(f'Failed to log EXIF tag {tag}: {e}')
+        
         # 查找视频数据（魅族 Live Photo 可能使用不同的标签）
         video_data = None
+        
+        # 记录所有 EXIF 标签，用于调试
+        logger.info(f'EXIF tags found: {list(exif_data.keys())}')
         
         # 检查常见的视频标签
         for tag in ['VideoData', 'MotionPhotoVideo', 'LivePhotoVideo', 'EmbeddedVideo']:
@@ -57,13 +69,13 @@ def extract_video_from_live_photo(image_path):
                                 break
                             except Exception as e:
                                 logger.warning(f'Failed to decode base64 data from tag {tag}: {e}')
-                    # 检查是否为 bytes 类型（可能是原始视频数据）
-                    elif isinstance(value, bytes):
-                        # 检查是否为有效的视频数据（大于 1KB）
-                        if len(value) > 1024:
-                            logger.info(f'Found potential video data in tag {tag} (bytes, size: {len(value)})')
-                            video_data = value
-                            break
+                        # 检查是否为 bytes 类型（可能是原始视频数据）
+                        elif isinstance(value, bytes):
+                            # 检查是否为有效的视频数据（大于 1KB）
+                            if len(value) > 1024:
+                                logger.info(f'Found potential video data in tag {tag} (bytes, size: {len(value)})')
+                                video_data = value
+                                break
                 except Exception as e:
                     logger.warning(f'Failed to process tag {tag}: {e}')
         
