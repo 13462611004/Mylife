@@ -1,6 +1,7 @@
 import subprocess
 import os
 import logging
+import piexif
 from PIL import Image, ExifTags, ImageOps
 
 logger = logging.getLogger(__name__)
@@ -16,65 +17,77 @@ def extract_video_from_live_photo(image_path):
         视频文件路径，如果提取失败则返回 None
     """
     try:
-        # 使用 Pillow 读取 EXIF 元数据
-        image = Image.open(image_path)
-        exif_data = image._getexif()
+        # 使用 piexif 读取 EXIF 元数据
+        exif_dict = piexif.load(image_path)
         
-        if not exif_data:
+        if not exif_dict:
             logger.info(f'No EXIF data found in {image_path}')
             return None
         
         # 记录所有 EXIF 标签，用于调试
-        logger.info(f'EXIF tags found: {list(exif_data.keys())}')
-        for tag, value in exif_data.items():
-            try:
-                value_str = str(value)[:200] if len(str(value)) > 200 else str(value)
-                logger.info(f'EXIF tag {tag}: type={type(value).__name__}, value={value_str}')
-            except Exception as e:
-                logger.warning(f'Failed to log EXIF tag {tag}: {e}')
+        logger.info(f'EXIF tags found: {list(exif_dict.keys())}')
         
         # 查找视频数据（魅族 Live Photo 可能使用不同的标签）
         video_data = None
         
-        # 记录所有 EXIF 标签，用于调试
-        logger.info(f'EXIF tags found: {list(exif_data.keys())}')
-        
-        # 优先检查Container XMP元数据（Android动态照片标准）
-        if 'Container' in exif_data:
-            container_data = exif_data['Container']
-            logger.info(f'Found Container XMP data: {container_data}')
-            
-            # 检查是否有MotionPhoto容器
-            if isinstance(container_data, list):
-                for item in container_data:
-                    if isinstance(item, dict) and item.get('Semantic') == 'MotionPhoto':
-                        logger.info(f'Found MotionPhoto container item: {item}')
-                        # 提取视频数据
-                        if 'Data' in item:
-                            video_data = item['Data']
-                            logger.info(f'Found video data in MotionPhoto container, size: {len(video_data) if isinstance(video_data, (str, bytes)) else "unknown"}')
-                            break
-        
-        # 如果没有找到MotionPhoto，继续检查常见的视频标签
-        if not video_data:
-            logger.info(f'No MotionPhoto container found, checking common video tags')
-            for tag in ['VideoData', 'MotionPhotoVideo', 'LivePhotoVideo', 'EmbeddedVideo']:
-                if tag in exif_data:
-                    video_data = exif_data[tag]
-                    logger.info(f'Found video data in EXIF tag: {tag}')
+        # 检查 XMP 元数据
+        if '0th' in exif_dict:
+            for key, value in exif_dict['0th'].items():
+                logger.info(f'EXIF 0th tag {key}: type={type(value).__name__}, value={str(value)[:200]}')
+                # 检查是否为视频数据
+                if isinstance(value, bytes) and len(value) > 1024:
+                    logger.info(f'Found potential video data in 0th tag {key} (bytes, size: {len(value)})')
+                    video_data = value
                     break
+        
+        # 检查 EXIF 元数据
+        if 'Exif' in exif_dict and not video_data:
+            for key, value in exif_dict['Exif'].items():
+                logger.info(f'EXIF Exif tag {key}: type={type(value).__name__}, value={str(value)[:200]}')
+                # 检查是否为视频数据
+                if isinstance(value, bytes) and len(value) > 1024:
+                    logger.info(f'Found potential video data in Exif tag {key} (bytes, size: {len(value)})')
+                    video_data = value
+                    break
+        
+        # 检查 Interop 元数据
+        if 'Interop' in exif_dict and not video_data:
+            for key, value in exif_dict['Interop'].items():
+                logger.info(f'EXIF Interop tag {key}: type={type(value).__name__}, value={str(value)[:200]}')
+                # 检查是否为视频数据
+                if isinstance(value, bytes) and len(value) > 1024:
+                    logger.info(f'Found potential video data in Interop tag {key} (bytes, size: {len(value)})')
+                    video_data = value
+                    break
+        
+        # 检查 1st 元数据
+        if '1st' in exif_dict and not video_data:
+            for key, value in exif_dict['1st'].items():
+                logger.info(f'EXIF 1st tag {key}: type={type(value).__name__}, value={str(value)[:200]}')
+                # 检查是否为视频数据
+                if isinstance(value, bytes) and len(value) > 1024:
+                    logger.info(f'Found potential video data in 1st tag {key} (bytes, size: {len(value)})')
+                    video_data = value
+                    break
+        
+        # 检查 thumbnail 元数据
+        if 'thumbnail' in exif_dict and not video_data:
+            thumbnail_data = exif_dict['thumbnail']
+            if isinstance(thumbnail_data, bytes) and len(thumbnail_data) > 1024:
+                logger.info(f'Found potential video data in thumbnail (bytes, size: {len(thumbnail_data)})')
+                video_data = thumbnail_data
+        
+        if not video_data:
+            logger.info(f'No video data found in EXIF metadata')
+            return None
         
         # 保存视频文件
         video_path = image_path.replace('.jpg', '.mp4')
         if not video_path.endswith('.mp4'):
             video_path = video_path.rsplit('.', 1)[0] + '.mp4'
         
-        # 如果视频数据是 base64 编码
-        if isinstance(video_data, str) and video_data.startswith('data:'):
-            import base64
-            header, data = video_data.split(',', 1)
-            video_bytes = base64.b64decode(data)
-        elif isinstance(video_data, bytes):
+        # 如果视频数据是 bytes 类型
+        if isinstance(video_data, bytes):
             video_bytes = video_data
         else:
             logger.warning(f'Unsupported video data format: {type(video_data)}')
