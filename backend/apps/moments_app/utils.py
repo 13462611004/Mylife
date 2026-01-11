@@ -223,11 +223,16 @@ def _validate_video_data(video_data):
         
         # 检查是否有实际的视频帧数据特征
         # H.264 帧通常以 0x00 0x00 0x00 0x01 或 0x00 0x00 0x01 开头
-        has_nalu_header = b'\\x00\\x00\\x00\\x01' in mdat_data[:5000] or b'\\x00\\x00\\x01' in mdat_data[:5000]
+        has_nalu_header = b'\x00\x00\x00\x01' in mdat_data[:5000] or b'\x00\x00\x01' in mdat_data[:5000]
         
         if not has_nalu_header:
             logger.warning('No H.264 NALU headers found in video data')
-            # 不直接返回 False，因为有些格式可能不以标准 NALU 头开头
+            # 检查是否有其他有效的视频数据特征
+            # 检查是否有非零数据
+            non_zero_bytes = sum(1 for byte in mdat_data[:1000] if byte != 0)
+            if non_zero_bytes < 100:
+                logger.warning(f'Video data appears to be mostly empty: {non_zero_bytes} non-zero bytes in first 1000')
+                return False
         
         logger.info(f'Video data validation passed: {len(mdat_data)} bytes, {filler_ratio * 100:.1f}% filler ratio')
         return True
