@@ -41,6 +41,7 @@ const Admin: React.FC = () => {
   const [currentPost, setCurrentPost] = useState<Post | null>(null);
   const [postMediaFiles, setPostMediaFiles] = useState<File[]>([]);
   const [postMediaTypes, setPostMediaTypes] = useState<string[]>([]);
+  const [postVideoFiles, setPostVideoFiles] = useState<File[]>([]);
   const [postSearchText, setPostSearchText] = useState<string>('');
   const [postStartDate, setPostStartDate] = useState<dayjs.Dayjs | null>(null);
   const [postEndDate, setPostEndDate] = useState<dayjs.Dayjs | null>(null);
@@ -1069,9 +1070,12 @@ const Admin: React.FC = () => {
                 url: URL.createObjectURL(file),
               }))}
               beforeUpload={(file) => {
-                // 验证文件类型
-                const isImage = file.type.startsWith('image/');
-                const isVideo = file.type.startsWith('video/');
+                const fileType = file.type.toLowerCase();
+                const fileName = file.name.toLowerCase();
+                
+                const isImage = fileType.startsWith('image/');
+                const isVideo = fileType.startsWith('video/');
+                
                 if (!isImage && !isVideo) {
                   message.error('只能上传图片或视频文件！');
                   return false;
@@ -1090,17 +1094,6 @@ const Admin: React.FC = () => {
                   return false;
                 }
                 
-                // 检测Live图（通常是.mov, .heic, .heif格式，或MIME类型为video/quicktime）
-                const fileName = file.name.toLowerCase();
-                const fileType = file.type.toLowerCase();
-                const isLive = 
-                  fileName.endsWith('.mov') || 
-                  fileName.endsWith('.heic') || 
-                  fileName.endsWith('.heif') ||
-                  fileType === 'video/quicktime' ||
-                  fileType === 'image/heic' ||
-                  fileType === 'image/heif';
-                
                 // 验证视频数量
                 const videoCount = postMediaTypes.filter(t => t === 'video').length;
                 if (isVideo && videoCount >= 1) {
@@ -1110,7 +1103,7 @@ const Admin: React.FC = () => {
                 
                 // 添加文件到列表（根据文件类型标记：live、video或image）
                 setPostMediaFiles([...postMediaFiles, file]);
-                const mediaType = isVideo ? 'video' : (isLive ? 'live' : 'image');
+                const mediaType = isVideo ? 'video' : (isLivePhoto ? 'live' : 'image');
                 setPostMediaTypes([...postMediaTypes, mediaType]);
                 return false;
               }}
@@ -1133,36 +1126,6 @@ const Admin: React.FC = () => {
                 </div>
               )}
             </Upload>
-            {/* 显示已上传文件的类型选择 */}
-            {postMediaFiles.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>设置媒体类型：</div>
-                {postMediaFiles.map((file, index) => {
-                  const currentType = postMediaTypes[index] || 'image';
-                  return (
-                    <div key={index} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ flex: 1, fontSize: 13, color: '#666' }}>
-                        {file.name.length > 30 ? file.name.substring(0, 30) + '...' : file.name}
-                      </span>
-                      <Select
-                        value={currentType}
-                        onChange={(value) => {
-                          const newTypes = [...postMediaTypes];
-                          newTypes[index] = value;
-                          setPostMediaTypes(newTypes);
-                        }}
-                        style={{ width: 100 }}
-                        size="small"
-                      >
-                        <Option value="image">图片</Option>
-                        <Option value="live">Live图</Option>
-                        <Option value="video">视频</Option>
-                      </Select>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
             <div style={{ marginTop: 8, color: '#999' }}>
               最多上传9个文件（图片或Live图最多9张，视频最多1个），单个文件最大50MB
             </div>
@@ -1175,6 +1138,7 @@ const Admin: React.FC = () => {
                 postForm.resetFields();
                 setPostMediaFiles([]);
                 setPostMediaTypes([]);
+                setPostVideoFiles([]);
               }}>取消</Button>
               <Button type="primary" htmlType="submit" loading={loading}>
                 {isEditPostMode ? '更新朋友圈' : '添加朋友圈'}
