@@ -114,15 +114,17 @@ def extract_video_from_live_photo(image_path):
             if mdat_size_8byte > len(file_data):
                 logger.info(f'mdat box 64-bit size is invalid, creating corrected MP4 file')
                 
+                # 创建简单的 MP4 文件，只包含 ftyp、moov 和 mdat box
+                # 这种方法更可靠，不依赖于可能有问题的 mdat 大小字段
+                
                 # 计算各个 box 的大小
                 ftyp_size = int.from_bytes(file_data[mp4_pos:mp4_pos+4], 'big')
                 moov_pos = mp4_pos + ftyp_size
                 moov_size = int.from_bytes(file_data[moov_pos:moov_pos+4], 'big')
                 
-                # mdat box 使用 64 位大小，头部长度为 16 bytes
-                mdat_header_size = 16
-                
                 # 计算 mdat 数据的位置和大小
+                # mdat box 头部长度为 16 bytes (4 byte 大小 + 4 byte 类型 + 8 byte 扩展大小)
+                mdat_header_size = 16
                 mdat_data_start = mdat_pos + mdat_header_size
                 mdat_data_size = len(file_data) - mdat_data_start
                 
@@ -131,7 +133,7 @@ def extract_video_from_live_photo(image_path):
                 logger.info(f'mdat data start: {mdat_data_start}')
                 logger.info(f'mdat data size: {mdat_data_size}')
                 
-                # 创建正确的 mdat box
+                # 创建新的 mdat box 大小
                 new_mdat_size = 8 + mdat_data_size  # 4 byte 大小 + 4 byte 类型 + 数据
                 
                 # 创建新的视频数据
