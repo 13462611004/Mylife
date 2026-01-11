@@ -119,11 +119,20 @@ def extract_video_from_live_photo(image_path):
                 moov_pos = mp4_pos + ftyp_size
                 moov_size = int.from_bytes(file_data[moov_pos:moov_pos+4], 'big')
                 
-                free_pos = moov_pos + moov_size
-                free_size = int.from_bytes(file_data[free_pos:free_pos+4], 'big')
+                # mdat box 使用 64 位大小，头部长度为 16 bytes
+                mdat_header_size = 16
+                
+                # 计算 mdat 数据的位置和大小
+                mdat_data_start = mdat_pos + mdat_header_size
+                mdat_data_size = len(file_data) - mdat_data_start
+                
+                logger.info(f'mdat box position: {mdat_pos}')
+                logger.info(f'mdat header size: {mdat_header_size}')
+                logger.info(f'mdat data start: {mdat_data_start}')
+                logger.info(f'mdat data size: {mdat_data_size}')
                 
                 # 创建正确的 mdat box
-                new_mdat_size = 8 + mdat_actual_data_size  # 4 byte 大小 + 4 byte 类型 + 数据
+                new_mdat_size = 8 + mdat_data_size  # 4 byte 大小 + 4 byte 类型 + 数据
                 
                 # 创建新的视频数据
                 video_data = bytearray()
@@ -132,15 +141,12 @@ def extract_video_from_live_photo(image_path):
                 video_data.extend(file_data[mp4_pos:moov_pos])
                 
                 # 复制 moov box
-                video_data.extend(file_data[moov_pos:free_pos])
-                
-                # 复制 free box
-                video_data.extend(file_data[free_pos:mdat_pos])
+                video_data.extend(file_data[moov_pos:mdat_pos])
                 
                 # 添加正确的 mdat box
                 video_data.extend(new_mdat_size.to_bytes(4, 'big'))
                 video_data.extend(b'mdat')
-                video_data.extend(file_data[mdat_pos+16:])  # mdat 数据（减去 16 byte 头部）
+                video_data.extend(file_data[mdat_data_start:])  # mdat 数据（减去 16 byte 头部）
                 
                 logger.info(f'Created corrected MP4 file: {len(video_data)} bytes')
             else:
