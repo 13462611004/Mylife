@@ -69,11 +69,12 @@ def extract_video_from_live_photo(image_path):
                             large_size = int.from_bytes(tail_data[mdat_pos_in_tail+8:mdat_pos_in_tail+16], 'big')
                             logger.info(f'mdat box 64-bit size field: {large_size}')
                             
-                            # 检查 64 位大小是否合理
-                            if large_size > len(tail_data):
-                                # 64 位大小无效，手动计算 mdat 数据大小
-                                logger.info(f'mdat box 64-bit size is invalid, using manual calculation')
-                                # mdat 数据从 mdat_pos + 16 开始，到 tail_data 末尾
+                            # 检查 64 位大小是否合理（不应该超过 1GB 或超过文件大小的 10 倍）
+                            max_reasonable_size = max(len(tail_data) * 10, 1 * 1024 * 1024 * 1024)  # 1GB 或文件大小的10倍
+                            if large_size > max_reasonable_size:
+                                # 64 位大小无效，使用文件末尾的所有数据
+                                logger.info(f'mdat box 64-bit size is invalid ({large_size}), using all data from mdat to end')
+                                # mdat 数据从 mdat_pos_in_tail + 16 开始，到 tail_data 末尾
                                 mdat_data = tail_data[mdat_pos_in_tail + 16:]
                                 logger.info(f'mdat data size: {len(mdat_data)} bytes')
                                 
