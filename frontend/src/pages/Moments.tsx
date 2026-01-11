@@ -23,6 +23,7 @@ const Moments: React.FC = () => {
   const [previewImage, setPreviewImage] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('card');
   const [playingStates, setPlayingStates] = useState<Record<number, boolean>>({});
+  const [previewMedia, setPreviewMedia] = useState<any>(null);
   
   useEffect(() => {
     fetchPosts();
@@ -100,9 +101,10 @@ const Moments: React.FC = () => {
         );
       } else if (item.media_type === 'live') {
         const isPlaying = playingStates[item.id];
+        const isPreviewing = previewMedia?.id === item.id;
         
         // 添加视频播放日志
-        if (isPlaying) {
+        if (isPlaying && !isPreviewing) {
           console.log('🎬 Playing video:', {
             video_file_url: item.video_file_url,
             id: item.id,
@@ -120,25 +122,37 @@ const Moments: React.FC = () => {
               cursor: item.video_file_url ? 'pointer' : 'default'
             }}
             onMouseEnter={() => {
-              if (item.video_file_url) {
+              if (item.video_file_url && !isPreviewing) {
                 const newPlayingStates = { ...playingStates };
                 newPlayingStates[item.id] = true;
                 setPlayingStates(newPlayingStates);
               }
             }}
             onMouseLeave={() => {
-              if (item.video_file_url) {
+              if (item.video_file_url && !isPreviewing) {
                 const newPlayingStates = { ...playingStates };
                 newPlayingStates[item.id] = false;
                 setPlayingStates(newPlayingStates);
               }
             }}
+            onClick={() => {
+              if (item.video_file_url) {
+                // 停止自动播放
+                const newPlayingStates = { ...playingStates };
+                newPlayingStates[item.id] = false;
+                setPlayingStates(newPlayingStates);
+                // 进入预览模式
+                setPreviewMedia(item);
+              }
+            }}
           >
-            {isPlaying && item.video_file_url ? (
+            {(isPlaying || isPreviewing) && item.video_file_url ? (
               <video
                 src={item.video_file_url}
-                autoPlay
-                muted
+                autoPlay={!isPreviewing}
+                muted={!isPreviewing}
+                controls={isPreviewing}
+                playbackRate={isPreviewing ? 1.5 : 1}
                 style={{ 
                   width: '100%', 
                   maxHeight: isTimeline ? 300 : 400, 
@@ -147,9 +161,11 @@ const Moments: React.FC = () => {
                 }}
                 playsInline
                 onEnded={() => {
-                  const newPlayingStates = { ...playingStates };
-                  newPlayingStates[item.id] = false;
-                  setPlayingStates(newPlayingStates);
+                  if (!isPreviewing) {
+                    const newPlayingStates = { ...playingStates };
+                    newPlayingStates[item.id] = false;
+                    setPlayingStates(newPlayingStates);
+                  }
                 }}
               />
             ) : (
@@ -177,7 +193,7 @@ const Moments: React.FC = () => {
               fontWeight: 'bold',
               zIndex: 1
             }}>
-              {isPlaying ? 'PLAYING' : 'LIVE'}
+              {isPreviewing ? 'PREVIEW' : (isPlaying ? 'PLAYING' : 'LIVE')}
             </div>
           </div>
         );
@@ -499,6 +515,54 @@ const Moments: React.FC = () => {
           style={{ width: '100%' }}
           preview={false}
         />
+      </Modal>
+
+      {/* Live Photo 预览模态框 */}
+      <Modal
+        open={!!previewMedia}
+        footer={null}
+        onCancel={() => setPreviewMedia(null)}
+        width="90%"
+        style={{ top: 20 }}
+        title={previewMedia?.file ? 'LIVE Photo 预览' : undefined}
+        styles={{ body: { padding: 0 } }}
+      >
+        {previewMedia && previewMedia.video_file_url && (
+          <div style={{ position: 'relative', textAlign: 'center' }}>
+            <video
+              src={previewMedia.video_file_url}
+              autoPlay
+              controls
+              style={{ 
+                width: '100%', 
+                maxHeight: '70vh',
+                display: 'block'
+              }}
+              playsInline
+            />
+            <div style={{ 
+              position: 'absolute',
+              bottom: 60,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(0,0,0,0.6)',
+              padding: '8px 16px',
+              borderRadius: 8,
+              color: '#fff',
+              fontSize: 14
+            }}>
+              倍速: 1.5x
+            </div>
+          </div>
+        )}
+        {previewMedia && previewMedia.file && !previewMedia.video_file_url && (
+          <Image
+            src={previewMedia.file}
+            alt="预览图片"
+            style={{ width: '100%' }}
+            preview={false}
+          />
+        )}
       </Modal>
     </div>
   );
