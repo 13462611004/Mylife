@@ -99,34 +99,51 @@ const Moments: React.FC = () => {
           </div>
         );
       } else if (item.media_type === 'live') {
+        const isPlaying = playingStates[item.id];
+        
         return (
           <div style={{ marginTop: 12, position: 'relative', overflow: 'hidden', borderRadius: 8 }}>
-            <img
-              src={item.file}
-              alt="Live图"
-              style={{ 
-                width: '100%', 
-                maxHeight: isTimeline ? 300 : 400, 
-                objectFit: 'cover', 
-                borderRadius: 8,
-                transition: 'opacity 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onClick={() => {
-                if (item.video_file_url) {
+            {isPlaying && item.video_file_url ? (
+              <video
+                src={item.video_file_url}
+                autoPlay
+                controls
+                style={{ width: '100%', maxHeight: isTimeline ? 300 : 400, borderRadius: 8 }}
+                playsInline
+                onEnded={() => {
                   const newPlayingStates = { ...playingStates };
-                  newPlayingStates[item.id] = !playingStates[item.id];
+                  newPlayingStates[item.id] = false;
                   setPlayingStates(newPlayingStates);
-                }
-              }}
-              onTouchStart={() => {
-                if (item.video_file_url) {
-                  const newPlayingStates = { ...playingStates };
-                  newPlayingStates[item.id] = true;
-                  setPlayingStates(newPlayingStates);
-                }
-              }}
-            />
+                }}
+              />
+            ) : (
+              <img
+                src={item.file}
+                alt="Live图"
+                style={{ 
+                  width: '100%', 
+                  maxHeight: isTimeline ? 300 : 400, 
+                  objectFit: 'cover', 
+                  borderRadius: 8,
+                  transition: 'opacity 0.3s ease',
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  if (item.video_file_url) {
+                    const newPlayingStates = { ...playingStates };
+                    newPlayingStates[item.id] = true;
+                    setPlayingStates(newPlayingStates);
+                  }
+                }}
+                onTouchStart={() => {
+                  if (item.video_file_url) {
+                    const newPlayingStates = { ...playingStates };
+                    newPlayingStates[item.id] = true;
+                    setPlayingStates(newPlayingStates);
+                  }
+                }}
+              />
+            )}
             <div style={{
               position: 'absolute',
               top: 8,
@@ -139,7 +156,7 @@ const Moments: React.FC = () => {
               fontWeight: 'bold',
               zIndex: 1
             }}>
-              LIVE
+              {isPlaying ? 'PLAYING' : 'LIVE'}
             </div>
           </div>
         );
