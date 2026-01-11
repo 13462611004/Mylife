@@ -18,16 +18,35 @@ def extract_video_from_live_photo(image_path):
         视频文件路径，如果提取失败则返回 None
     """
     try:
-        # 读取文件的尾部，查找视频数据
+        # 读取文件，查找视频数据
         with open(image_path, 'rb') as f:
             f.seek(0, 2)  # 移动到文件尾部
             file_size = f.tell()
             
-            # 读取文件的最后 5MB 数据（视频数据可能在这个范围内）
-            f.seek(max(0, file_size - 5 * 1024 * 1024))
-            tail_data = f.read()
+            # 自动读取足够的尾部数据来找到视频数据
+            # 从 1MB 开始，如果没找到就增加
+            chunk_size = 1024 * 1024  # 1MB
+            tail_data = None
             
-            logger.info(f'File size: {file_size}, Tail data size: {len(tail_data)}')
+            for i in range(5):  # 最多读取 5MB
+                read_size = (i + 1) * chunk_size
+                if read_size > file_size:
+                    read_size = file_size
+                
+                f.seek(file_size - read_size)
+                tail_data = f.read()
+                
+                logger.info(f'Trying to find ftyp in last {read_size / 1024 / 1024:.2f} MB')
+                
+                # 在尾部数据中查找 ftyp 魔数
+                ftyp_pos = tail_data.find(b'ftyp')
+                if ftyp_pos >= 0:
+                    logger.info(f'Found ftyp at position {ftyp_pos} from end of chunk')
+                    break
+            
+            if not tail_data or len(tail_data) < 1024:
+                logger.info('Not enough data to extract video')
+                return None
             
             # 检查尾部数据是否为有效的视频文件
             # MP4 文件的魔数是 00 00 00 18 66 74 70 79 6D 70 61
