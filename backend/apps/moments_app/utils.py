@@ -17,85 +17,44 @@ def extract_video_from_live_photo(image_path):
         视频文件路径，如果提取失败则返回 None
     """
     try:
-        # 使用 piexif 读取 EXIF 元数据
-        exif_dict = piexif.load(image_path)
-        
-        if not exif_dict:
-            logger.info(f'No EXIF data found in {image_path}')
-            return None
-        
-        # 记录所有 EXIF 标签，用于调试
-        logger.info(f'EXIF tags found: {list(exif_dict.keys())}')
-        
-        # 查找视频数据（魅族 Live Photo 可能使用不同的标签）
-        video_data = None
-        
-        # 检查 XMP 元数据
-        if '0th' in exif_dict:
-            for key, value in exif_dict['0th'].items():
-                logger.info(f'EXIF 0th tag {key}: type={type(value).__name__}, value={str(value)[:200]}')
-                # 检查是否为视频数据
-                if isinstance(value, bytes) and len(value) > 1024:
-                    logger.info(f'Found potential video data in 0th tag {key} (bytes, size: {len(value)})')
-                    video_data = value
-                    break
-        
-        # 检查 EXIF 元数据
-        if 'Exif' in exif_dict and not video_data:
-            for key, value in exif_dict['Exif'].items():
-                logger.info(f'EXIF Exif tag {key}: type={type(value).__name__}, value={str(value)[:200]}')
-                # 检查是否为视频数据
-                if isinstance(value, bytes) and len(value) > 1024:
-                    logger.info(f'Found potential video data in Exif tag {key} (bytes, size: {len(value)})')
-                    video_data = value
-                    break
-        
-        # 检查 Interop 元数据
-        if 'Interop' in exif_dict and not video_data:
-            for key, value in exif_dict['Interop'].items():
-                logger.info(f'EXIF Interop tag {key}: type={type(value).__name__}, value={str(value)[:200]}')
-                # 检查是否为视频数据
-                if isinstance(value, bytes) and len(value) > 1024:
-                    logger.info(f'Found potential video data in Interop tag {key} (bytes, size: {len(value)})')
-                    video_data = value
-                    break
-        
-        # 检查 1st 元数据
-        if '1st' in exif_dict and not video_data:
-            for key, value in exif_dict['1st'].items():
-                logger.info(f'EXIF 1st tag {key}: type={type(value).__name__}, value={str(value)[:200]}')
-                # 检查是否为视频数据
-                if isinstance(value, bytes) and len(value) > 1024:
-                    logger.info(f'Found potential video data in 1st tag {key} (bytes, size: {len(value)})')
-                    video_data = value
-                    break
-        
-        # 检查 thumbnail 元数据
-        if 'thumbnail' in exif_dict and not video_data:
-            thumbnail_data = exif_dict['thumbnail']
-            if isinstance(thumbnail_data, bytes) and len(thumbnail_data) > 1024:
-                logger.info(f'Found potential video data in thumbnail (bytes, size: {len(thumbnail_data)})')
-                video_data = thumbnail_data
-        
-        if not video_data:
-            logger.info(f'No video data found in EXIF metadata')
-            return None
+        # 读取文件的尾部，查找视频数据
+        with open(image_path, 'rb') as f:
+            f.seek(0, 2)  # 移动到文件尾部
+            file_size = f.tell()
+            
+            # 读取文件的最后 1MB 数据
+            f.seek(max(0, file_size - 1024 * 1024))
+            tail_data = f.read()
+            
+            logger.info(f'File size: {file_size}, Tail data size: {len(tail_data)}')
+            
+            # 检查尾部数据是否为有效的视频文件
+            # MP4 文件的魔数是 00 00 00 18 66 74 70 79 6D 70 61
+            # MOV 文件的魔数是 00 00 00 14 66 74 79 64
+            if len(tail_data) > 1024:
+                # 检查是否为 MP4 文件
+                if tail_data.startswith(b'\x00\x00\x00\x18\x66\x74\x79\x70\x6d\x70\x34\x32') or tail_data.startswith(b'\x00\x00\x00\x20\x66\x74\x79\x70\x6d\x70\x34\x32'):
+                    logger.info(f'Found MP4 video data in file tail')
+                    video_data = tail_data
+                # 检查是否为 MOV 文件
+                elif tail_data.startswith(b'\x00\x00\x00\x14\x66\x74\x79\x70') or tail_data.startswith(b'\x00\x00\x00\x20\x66\x74\x79\x70'):
+                    logger.info(f'Found MOV video data in file tail')
+                    video_data = tail_data
+                else:
+                    logger.info(f'Tail data does not look like a video file')
+                    return None
+            else:
+                logger.info(f'Tail data is too small to be a video file')
+                return None
         
         # 保存视频文件
         video_path = image_path.replace('.jpg', '.mp4')
         if not video_path.endswith('.mp4'):
             video_path = video_path.rsplit('.', 1)[0] + '.mp4'
         
-        # 如果视频数据是 bytes 类型
-        if isinstance(video_data, bytes):
-            video_bytes = video_data
-        else:
-            logger.warning(f'Unsupported video data format: {type(video_data)}')
-            return None
-        
         # 写入视频文件
         with open(video_path, 'wb') as f:
-            f.write(video_bytes)
+            f.write(video_data)
         
         logger.info(f'Successfully extracted video to {video_path}')
         return video_path
