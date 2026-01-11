@@ -23,8 +23,8 @@ def extract_video_from_live_photo(image_path):
             f.seek(0, 2)  # 移动到文件尾部
             file_size = f.tell()
             
-            # 读取文件的最后 2MB 数据（视频数据可能在这个范围内）
-            f.seek(max(0, file_size - 2 * 1024 * 1024))
+            # 读取文件的最后 5MB 数据（视频数据可能在这个范围内）
+            f.seek(max(0, file_size - 5 * 1024 * 1024))
             tail_data = f.read()
             
             logger.info(f'File size: {file_size}, Tail data size: {len(tail_data)}')
