@@ -18,148 +18,35 @@ def extract_video_from_live_photo(image_path):
         视频文件路径，如果提取失败则返回 None
     """
     try:
-        # 读取 XMP 元数据
-        image = Image.open(image_path)
-        exif_data = image._getexif()
-        
-        if not exif_data:
-            logger.info(f'No EXIF data found in {image_path}')
-            return None
-        
-        # 检查是否为 Live Photo
-        # 标签 271 = "meizu", 272 = "MEIZU"
-        make_tag = exif_data.get(271, b'')
-        if isinstance(make_tag, bytes):
-            make = make_tag.decode('utf-8', errors='ignore').lower()
-        elif isinstance(make_tag, str):
-            make = make_tag.lower()
-        else:
-            make = str(make_tag).lower()
-        
-        model_tag = exif_data.get(272, b'')
-        if isinstance(model_tag, bytes):
-            model = model_tag.decode('utf-8', errors='ignore').lower()
-        elif isinstance(model_tag, str):
-            model = model_tag.lower()
-        else:
-            model = str(model_tag).lower()
-        
-        is_live_photo = False
-        
-        # 检查 XMP 元数据
-        for tag, value in exif_data.items():
-            if isinstance(value, bytes):
-                try:
-                    xmp_data = value.decode('utf-8', errors='ignore')
-                    if 'Camera:MotionPhoto="1"' in xmp_data or "Camera:MotionPhoto='1'" in xmp_data:
-                        logger.info(f'Found MotionPhoto in EXIF tag {tag}')
-                        is_live_photo = True
-                        break
-                except:
-                    pass
-        
-        # 检查是否为魅族设备
-        if 'meizu' in make or 'meizu' in model:
-            logger.info(f'Found Meizu device: {make} {model}')
-            is_live_photo = True
-        
-        if not is_live_photo:
-            logger.info(f'Not a Live Photo: {image_path}')
-            return None
-        
-        # 读取文件，查找视频数据
+        # 读取文件的尾部，查找视频数据
         with open(image_path, 'rb') as f:
-            file_data = f.read()
-        
-        # 在文件末尾查找 MP4 魔数
-        mp4_magic = b'\x00\x00\x00\x18ftypmp42'
-        mp4_pos = file_data.rfind(mp4_magic)
-        
-        if mp4_pos == -1:
-            mp4_magic = b'\x00\x00\x00\x18ftyp'
-            mp4_pos = file_data.rfind(mp4_magic)
-        
-        if mp4_pos == -1:
-            logger.info(f'No MP4 magic found in {image_path}')
-            return None
-        
-        logger.info(f'Found MP4 magic at position {mp4_pos}')
-        
-        # 找到 mdat box
-        mdat_magic = b'mdat'
-        mdat_pos = file_data.find(mdat_magic, mp4_pos)
-        
-        if mdat_pos == -1:
-            logger.info(f'No mdat box found in {image_path}')
-            return None
-        
-        logger.info(f'mdat box position: {mdat_pos}')
-        
-        # 读取 mdat box 大小
-        mdat_size = int.from_bytes(file_data[mdat_pos-4:mdat_pos], 'big')
-        logger.info(f'mdat box size field: {mdat_size}')
-        
-        # 计算 mdat 数据的实际大小
-        # mdat box 头部长度为 16 bytes (4 byte 大小 + 4 byte 类型 + 8 byte 扩展大小)
-        mdat_actual_data_size = len(file_data) - mdat_pos - 16
-        logger.info(f'mdat actual data size: {mdat_actual_data_size} bytes ({mdat_actual_data_size / 1024 / 1024:.2f} MB)')
-        
-        # 如果 mdat_size = 1，说明使用 64 位大小，但可能无效
-        if mdat_size == 1:
-            # 读取 64 位大小字段
-            mdat_size_8byte = int.from_bytes(file_data[mdat_pos+8:mdat_pos+16], 'big')
-            logger.info(f'mdat box 64-bit size field: {mdat_size_8byte}')
+            f.seek(0, 2)  # 移动到文件尾部
+            file_size = f.tell()
             
-            # 如果 64 位大小超出文件大小，说明无效
-            if mdat_size_8byte > len(file_data):
-                logger.info(f'mdat box 64-bit size is invalid, creating corrected MP4 file')
-                
-                # 创建简单的 MP4 文件，只包含 ftyp、moov 和 mdat box
-                # 这种方法更可靠，不依赖于可能有问题的 mdat 大小字段
-                
-                # 计算各个 box 的大小
-                ftyp_size = int.from_bytes(file_data[mp4_pos:mp4_pos+4], 'big')
-                moov_pos = mp4_pos + ftyp_size
-                moov_size = int.from_bytes(file_data[moov_pos:moov_pos+4], 'big')
-                
-                # 计算 mdat 数据的位置和大小
-                # mdat box 头部长度为 16 bytes (4 byte 大小 + 4 byte 类型 + 8 byte 扩展大小)
-                mdat_header_size = 16
-                mdat_data_start = mdat_pos + mdat_header_size
-                mdat_data_size = len(file_data) - mdat_data_start
-                
-                logger.info(f'mdat box position: {mdat_pos}')
-                logger.info(f'mdat header size: {mdat_header_size}')
-                logger.info(f'mdat data start: {mdat_data_start}')
-                logger.info(f'mdat data size: {mdat_data_size}')
-                
-                # 创建新的 mdat box 大小
-                new_mdat_size = 8 + mdat_data_size  # 4 byte 大小 + 4 byte 类型 + 数据
-                
-                # 创建新的视频数据
-                video_data = bytearray()
-                
-                # 复制 ftyp box
-                video_data.extend(file_data[mp4_pos:moov_pos])
-                
-                # 复制 moov box
-                video_data.extend(file_data[moov_pos:mdat_pos])
-                
-                # 添加正确的 mdat box
-                video_data.extend(new_mdat_size.to_bytes(4, 'big'))
-                video_data.extend(b'mdat')
-                video_data.extend(file_data[mdat_data_start:])  # mdat 数据（减去 16 byte 头部）
-                
-                logger.info(f'Created corrected MP4 file: {len(video_data)} bytes')
+            # 读取文件的最后 1MB 数据
+            f.seek(max(0, file_size - 1024 * 1024))
+            tail_data = f.read()
+            
+            logger.info(f'File size: {file_size}, Tail data size: {len(tail_data)}')
+            
+            # 检查尾部数据是否为有效的视频文件
+            # MP4 文件的魔数是 00 00 00 18 66 74 70 79 6D 70 61
+            # MOV 文件的魔数是 00 00 00 14 66 74 79 64
+            if len(tail_data) > 1024:
+                # 检查是否为 MP4 文件
+                if tail_data.startswith(b'\x00\x00\x00\x18\x66\x74\x79\x70\x6d\x70\x34\x32') or tail_data.startswith(b'\x00\x00\x00\x20\x66\x74\x79\x70\x6d\x70\x34\x32'):
+                    logger.info(f'Found MP4 video data in file tail')
+                    video_data = tail_data
+                # 检查是否为 MOV 文件
+                elif tail_data.startswith(b'\x00\x00\x00\x14\x66\x74\x79\x70') or tail_data.startswith(b'\x00\x00\x00\x20\x66\x74\x79\x70'):
+                    logger.info(f'Found MOV video data in file tail')
+                    video_data = tail_data
+                else:
+                    logger.info(f'Tail data does not look like a video file')
+                    return None
             else:
-                # 64 位大小有效，直接提取完整的视频数据
-                logger.info(f'mdat box size is valid, extracting complete video data')
-                video_data = file_data[mp4_pos:mdat_pos + mdat_size_8byte]
-        else:
-            # 提取完整的视频数据
-            video_data = file_data[mp4_pos:mdat_pos + mdat_size]
-        
-        logger.info(f'Extracted video data: {len(video_data)} bytes')
+                logger.info(f'Tail data is too small to be a video file')
+                return None
         
         # 保存视频文件
         video_path = image_path.replace('.jpg', '.mp4')
