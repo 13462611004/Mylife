@@ -24,6 +24,7 @@ const Moments: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('card');
   const [playingStates, setPlayingStates] = useState<Record<number, boolean>>({});
   const [previewMedia, setPreviewMedia] = useState<any>(null);
+  const [playbackRate, setPlaybackRate] = useState(1);
   
   useEffect(() => {
     fetchPosts();
@@ -152,7 +153,6 @@ const Moments: React.FC = () => {
                 autoPlay={!isPreviewing}
                 muted={!isPreviewing}
                 controls={isPreviewing}
-                playbackRate={isPreviewing ? 1.5 : 1}
                 style={{ 
                   width: '100%', 
                   maxHeight: isTimeline ? 300 : 400, 
@@ -530,6 +530,11 @@ const Moments: React.FC = () => {
         {previewMedia && previewMedia.video_file_url && (
           <div style={{ position: 'relative', textAlign: 'center' }}>
             <video
+              ref={(el: HTMLVideoElement | null) => {
+                if (el && previewMedia) {
+                  el.playbackRate = playbackRate;
+                }
+              }}
               src={previewMedia.video_file_url}
               autoPlay
               controls
@@ -549,9 +554,22 @@ const Moments: React.FC = () => {
               padding: '8px 16px',
               borderRadius: 8,
               color: '#fff',
-              fontSize: 14
+              fontSize: 14,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
             }}>
-              倍速: 1.5x
+              <span>倍速:</span>
+              {[0.5, 1, 1.25, 1.5, 2].map(rate => (
+                <Button
+                  key={rate}
+                  size="small"
+                  type={playbackRate === rate ? 'primary' : 'default'}
+                  onClick={() => setPlaybackRate(rate)}
+                >
+                  {rate}x
+                </Button>
+              ))}
             </div>
           </div>
         )}
