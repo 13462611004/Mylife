@@ -99,24 +99,54 @@ def extract_video_from_live_photo(image_path):
         mdat_size = int.from_bytes(file_data[mdat_pos-4:mdat_pos], 'big')
         logger.info(f'mdat box size field: {mdat_size}')
         
-        # 如果 mdat_size = 1，说明使用 64 位大小
+        # 计算 mdat 数据的实际大小
+        # mdat box 头部长度为 16 bytes (4 byte 大小 + 4 byte 类型 + 8 byte 扩展大小)
+        mdat_actual_data_size = len(file_data) - mdat_pos - 16
+        logger.info(f'mdat actual data size: {mdat_actual_data_size} bytes ({mdat_actual_data_size / 1024 / 1024:.2f} MB)')
+        
+        # 如果 mdat_size = 1，说明使用 64 位大小，但可能无效
         if mdat_size == 1:
             # 读取 64 位大小字段
             mdat_size_8byte = int.from_bytes(file_data[mdat_pos+8:mdat_pos+16], 'big')
             logger.info(f'mdat box 64-bit size field: {mdat_size_8byte}')
             
-            # 计算 mdat 数据的实际大小
-            mdat_data_size = mdat_size_8byte - 16  # 减去 16 byte 头部
-            
-            # 检查 64 位大小是否合理
-            if mdat_data_size + mdat_pos + 16 <= len(file_data):
-                logger.info(f'mdat box size is valid, extracting complete video data')
-                # 提取完整的视频数据（从 ftyp 到 mdat 末尾）
-                video_data = file_data[mp4_pos:mdat_pos + mdat_size_8byte]
+            # 如果 64 位大小超出文件大小，说明无效
+            if mdat_size_8byte > len(file_data):
+                logger.info(f'mdat box 64-bit size is invalid, creating corrected MP4 file')
+                
+                # 计算各个 box 的大小
+                ftyp_size = int.from_bytes(file_data[mp4_pos:mp4_pos+4], 'big')
+                moov_pos = mp4_pos + ftyp_size
+                moov_size = int.from_bytes(file_data[moov_pos:moov_pos+4], 'big')
+                
+                free_pos = moov_pos + moov_size
+                free_size = int.from_bytes(file_data[free_pos:free_pos+4], 'big')
+                
+                # 创建正确的 mdat box
+                new_mdat_size = 8 + mdat_actual_data_size  # 4 byte 大小 + 4 byte 类型 + 数据
+                
+                # 创建新的视频数据
+                video_data = bytearray()
+                
+                # 复制 ftyp box
+                video_data.extend(file_data[mp4_pos:moov_pos])
+                
+                # 复制 moov box
+                video_data.extend(file_data[moov_pos:free_pos])
+                
+                # 复制 free box
+                video_data.extend(file_data[free_pos:mdat_pos])
+                
+                # 添加正确的 mdat box
+                video_data.extend(new_mdat_size.to_bytes(4, 'big'))
+                video_data.extend(b'mdat')
+                video_data.extend(file_data[mdat_pos+16:])  # mdat 数据（减去 16 byte 头部）
+                
+                logger.info(f'Created corrected MP4 file: {len(video_data)} bytes')
             else:
-                logger.info(f'mdat box size is invalid, extracting data from ftyp to end of file')
-                # 直接提取从 ftyp 到文件末尾的数据
-                video_data = file_data[mp4_pos:]
+                # 64 位大小有效，直接提取完整的视频数据
+                logger.info(f'mdat box size is valid, extracting complete video data')
+                video_data = file_data[mp4_pos:mdat_pos + mdat_size_8byte]
         else:
             # 提取完整的视频数据
             video_data = file_data[mp4_pos:mdat_pos + mdat_size]
