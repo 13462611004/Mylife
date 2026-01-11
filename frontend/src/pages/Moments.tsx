@@ -111,34 +111,45 @@ const Moments: React.FC = () => {
         }
         
         return (
-          <div style={{ marginTop: 12, position: 'relative', overflow: 'hidden', borderRadius: 8 }}>
+          <div 
+            style={{ 
+              marginTop: 12, 
+              position: 'relative', 
+              overflow: 'hidden', 
+              borderRadius: 8,
+              cursor: item.video_file_url ? 'pointer' : 'default'
+            }}
+            onMouseEnter={() => {
+              if (item.video_file_url) {
+                const newPlayingStates = { ...playingStates };
+                newPlayingStates[item.id] = true;
+                setPlayingStates(newPlayingStates);
+              }
+            }}
+            onMouseLeave={() => {
+              if (item.video_file_url) {
+                const newPlayingStates = { ...playingStates };
+                newPlayingStates[item.id] = false;
+                setPlayingStates(newPlayingStates);
+              }
+            }}
+          >
             {isPlaying && item.video_file_url ? (
               <video
                 src={item.video_file_url}
                 autoPlay
-                controls
-                style={{ width: '100%', maxHeight: isTimeline ? 300 : 400, borderRadius: 8 }}
+                muted
+                style={{ 
+                  width: '100%', 
+                  maxHeight: isTimeline ? 300 : 400, 
+                  borderRadius: 8,
+                  display: 'block'
+                }}
                 playsInline
                 onEnded={() => {
                   const newPlayingStates = { ...playingStates };
                   newPlayingStates[item.id] = false;
                   setPlayingStates(newPlayingStates);
-                }}
-                onLoadedMetadata={() => {
-                  console.log('✅ Video loaded metadata:', {
-                    video_file_url: item.video_file_url,
-                    duration: 'loaded'
-                  });
-                }}
-                onError={(e) => {
-                  const videoEl = e.target as HTMLVideoElement;
-                  console.error('❌ Video error:', {
-                    video_file_url: item.video_file_url,
-                    errorCode: videoEl.error?.code,
-                    errorMessage: videoEl.error?.message,
-                    networkState: videoEl.networkState,
-                    readyState: videoEl.readyState
-                  });
                 }}
               />
             ) : (
@@ -150,22 +161,7 @@ const Moments: React.FC = () => {
                   maxHeight: isTimeline ? 300 : 400, 
                   objectFit: 'cover', 
                   borderRadius: 8,
-                  transition: 'opacity 0.3s ease',
-                  cursor: 'pointer'
-                }}
-                onClick={() => {
-                  if (item.video_file_url) {
-                    const newPlayingStates = { ...playingStates };
-                    newPlayingStates[item.id] = true;
-                    setPlayingStates(newPlayingStates);
-                  }
-                }}
-                onTouchStart={() => {
-                  if (item.video_file_url) {
-                    const newPlayingStates = { ...playingStates };
-                    newPlayingStates[item.id] = true;
-                    setPlayingStates(newPlayingStates);
-                  }
+                  transition: 'opacity 0.3s ease'
                 }}
               />
             )}
