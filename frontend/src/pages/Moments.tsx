@@ -40,8 +40,22 @@ const Moments: React.FC = () => {
       
       if (response && typeof response === 'object' && 'results' in response) {
         const paginatedResponse = response as PaginatedResponse<Post>;
-        setPosts(Array.isArray(paginatedResponse.results) ? paginatedResponse.results : []);
+        const posts = Array.isArray(paginatedResponse.results) ? paginatedResponse.results : [];
+        setPosts(posts);
         setTotalCount(paginatedResponse.count || 0);
+        
+        // 添加日志输出
+        console.log('Fetched posts:', JSON.stringify(posts.map(post => ({
+          id: post.id,
+          content: post.content,
+          media_count: post.media_count,
+          media: post.media.map(m => ({
+            id: m.id,
+            media_type: m.media_type,
+            file: m.file,
+            video_file_url: m.video_file_url
+          }))
+        })), null, 2));
       } else if (Array.isArray(response)) {
         setPosts(response);
         setTotalCount(response.length);
@@ -63,6 +77,16 @@ const Moments: React.FC = () => {
 
     if (media.length === 1) {
       const item = media[0];
+      
+      // 添加日志输出
+      console.log('Rendering media item:', JSON.stringify({
+        id: item.id,
+        media_type: item.media_type,
+        file: item.file,
+        video_file_url: item.video_file_url,
+        has_video: !!item.video_file_url
+      }, null, 2));
+      
       if (item.media_type === 'video') {
         return (
           <div style={{ marginTop: 12, position: 'relative' }}>
