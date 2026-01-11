@@ -101,6 +101,15 @@ const Moments: React.FC = () => {
       } else if (item.media_type === 'live') {
         const isPlaying = playingStates[item.id];
         
+        // 添加视频播放日志
+        if (isPlaying) {
+          console.log('🎬 Playing video:', {
+            video_file_url: item.video_file_url,
+            id: item.id,
+            media_type: item.media_type
+          });
+        }
+        
         return (
           <div style={{ marginTop: 12, position: 'relative', overflow: 'hidden', borderRadius: 8 }}>
             {isPlaying && item.video_file_url ? (
@@ -114,6 +123,18 @@ const Moments: React.FC = () => {
                   const newPlayingStates = { ...playingStates };
                   newPlayingStates[item.id] = false;
                   setPlayingStates(newPlayingStates);
+                }}
+                onLoadedMetadata={() => {
+                  console.log('✅ Video loaded metadata:', {
+                    video_file_url: item.video_file_url,
+                    duration: 'loaded'
+                  });
+                }}
+                onError={(e) => {
+                  console.error('❌ Video error:', {
+                    video_file_url: item.video_file_url,
+                    error: e
+                  });
                 }}
               />
             ) : (
