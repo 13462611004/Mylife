@@ -1101,9 +1101,9 @@ const Admin: React.FC = () => {
                   return false;
                 }
                 
-                // 添加文件到列表（根据文件类型标记：live、video或image）
+                // 添加文件到列表（根据文件类型标记：video或image）
                 setPostMediaFiles([...postMediaFiles, file]);
-                const mediaType = isVideo ? 'video' : (isLivePhoto ? 'live' : 'image');
+                const mediaType = isVideo ? 'video' : 'image';
                 setPostMediaTypes([...postMediaTypes, mediaType]);
                 return false;
               }}
