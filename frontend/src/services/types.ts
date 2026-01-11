@@ -67,6 +67,8 @@ export interface PostMedia {
   media_type: 'image' | 'live' | 'video';
   file: string;
   file_url: string;
+  video_file?: string;
+  video_file_url?: string;
   order: number;
   created_at: string;
 }
