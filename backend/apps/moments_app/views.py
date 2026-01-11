@@ -11,6 +11,33 @@ from .serializers import (
     PostMediaSerializer
 )
 
+def detect_media_type(file):
+    """
+    检测文件类型：image, video, live
+    优先级：live > video > image
+    """
+    file_name = file.name.lower()
+    file_type = file.content_type.lower() if file.content_type else ''
+    
+    # 检测 Apple Live Photo
+    if (file_type in ['image/heic', 'image/heif'] or 
+        file_name.endswith('.heic') or file_name.endswith('.heif')):
+        return 'live'
+    
+    # 检测 Android Live Photo
+    if (file_type in ['image/jpeg', 'image/png'] and file_name.endswith('.jpg')):
+        return 'live'
+    
+    # 检测视频
+    if file_type.startswith('video/'):
+        return 'video'
+    
+    # 检测普通图片
+    if file_type.startswith('image/'):
+        return 'image'
+    
+    return 'image'
+
 
 class PostViewSet(viewsets.ModelViewSet):
     """
@@ -113,6 +140,7 @@ class PostViewSet(viewsets.ModelViewSet):
             'is_pinned': request.data.get('is_pinned', False),
             'tags': tags,
             'media_files': media_files,
+            'video_files': [],
             'media_types': media_types
         }
         

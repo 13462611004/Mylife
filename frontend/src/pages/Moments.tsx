@@ -20,9 +20,10 @@ const Moments: React.FC = () => {
   const [pageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [previewVisible, setPreviewVisible] = useState(false);
-  const [previewImage] = useState('');
+  const [previewImage, setPreviewImage] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('card');
-
+  const [playingStates, setPlayingStates] = useState<Record<number, boolean>>({});
+  
   useEffect(() => {
     fetchPosts();
   }, [currentPage]);
@@ -62,7 +63,7 @@ const Moments: React.FC = () => {
 
     if (media.length === 1) {
       const item = media[0];
-      if (item.media_type === 'video' || item.media_type === 'live') {
+      if (item.media_type === 'video') {
         return (
           <div style={{ marginTop: 12, position: 'relative' }}>
             <video
@@ -71,21 +72,51 @@ const Moments: React.FC = () => {
               style={{ width: '100%', maxHeight: isTimeline ? 300 : 400, borderRadius: 8 }}
               playsInline
             />
-            {item.media_type === 'live' && (
-              <div style={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                background: 'rgba(0, 0, 0, 0.6)',
-                color: '#fff',
-                padding: '4px 8px',
-                borderRadius: 4,
-                fontSize: 12,
-                fontWeight: 'bold'
-              }}>
-                LIVE
-              </div>
-            )}
+          </div>
+        );
+      } else if (item.media_type === 'live') {
+        return (
+          <div style={{ marginTop: 12, position: 'relative', overflow: 'hidden', borderRadius: 8 }}>
+            <img
+              src={item.file}
+              alt="Live图"
+              style={{ 
+                width: '100%', 
+                maxHeight: isTimeline ? 300 : 400, 
+                objectFit: 'cover', 
+                borderRadius: 8,
+                transition: 'opacity 0.3s ease',
+                cursor: 'pointer'
+              }}
+              onClick={() => {
+                if (item.video_file_url) {
+                  const newPlayingStates = { ...playingStates };
+                  newPlayingStates[item.id] = !playingStates[item.id];
+                  setPlayingStates(newPlayingStates);
+                }
+              }}
+              onTouchStart={() => {
+                if (item.video_file_url) {
+                  const newPlayingStates = { ...playingStates };
+                  newPlayingStates[item.id] = true;
+                  setPlayingStates(newPlayingStates);
+                }
+              }}
+            />
+            <div style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              background: 'rgba(0, 0, 0, 0.6)',
+              color: '#fff',
+              padding: '4px 8px',
+              borderRadius: 4,
+              fontSize: 12,
+              fontWeight: 'bold',
+              zIndex: 1
+            }}>
+              LIVE
+            </div>
           </div>
         );
       } else {
@@ -109,7 +140,7 @@ const Moments: React.FC = () => {
         <Row gutter={[8, 8]}>
           {media.map((item, index) => (
             <Col key={index} xs={8} sm={8} md={8}>
-              {item.media_type === 'video' || item.media_type === 'live' ? (
+              {item.media_type === 'video' ? (
                 <div style={{ position: 'relative' }}>
                   <video
                     src={item.file}
@@ -117,21 +148,59 @@ const Moments: React.FC = () => {
                     style={{ width: '100%', aspectRatio: 1, objectFit: 'cover', borderRadius: 8 }}
                     playsInline
                   />
-                  {item.media_type === 'live' && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 4,
-                      right: 4,
-                      background: 'rgba(0, 0, 0, 0.6)',
-                      color: '#fff',
-                      padding: '2px 6px',
-                      borderRadius: 4,
-                      fontSize: 10,
-                      fontWeight: 'bold'
-                    }}>
-                      LIVE
-                    </div>
-                  )}
+                </div>
+              ) : item.media_type === 'live' ? (
+                <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 8 }}>
+                  <img
+                    src={item.file}
+                    alt={`Live图${index + 1}`}
+                    style={{ 
+                      width: '100%', 
+                      aspectRatio: 1, 
+                      objectFit: 'cover', 
+                      borderRadius: 8,
+                      transition: 'opacity 0.3s ease',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (item.video_file_url) {
+                        const img = e.currentTarget;
+                        img.style.opacity = '0';
+                        const video = document.createElement('video');
+                        video.src = item.video_file_url;
+                        video.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:8px;';
+                        video.autoplay = true;
+                        video.muted = true;
+                        video.loop = true;
+                        video.playsInline = true;
+                        img.parentElement?.appendChild(video);
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (item.video_file_url) {
+                        const img = e.currentTarget;
+                        img.style.opacity = '1';
+                        const video = img.parentElement?.querySelector('video');
+                        if (video) {
+                          video.remove();
+                        }
+                      }
+                    }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    top: 4,
+                    right: 4,
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    color: '#fff',
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    fontSize: 10,
+                    fontWeight: 'bold',
+                    zIndex: 1
+                  }}>
+                    LIVE
+                  </div>
                 </div>
               ) : (
                 <Image

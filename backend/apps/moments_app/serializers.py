@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.db import transaction
 from .models import Post, PostMedia
+from .utils import extract_video_from_live_photo, is_live_photo
 
 
 class PostMediaSerializer(serializers.ModelSerializer):
@@ -10,6 +11,9 @@ class PostMediaSerializer(serializers.ModelSerializer):
     """
     # 文件URL，用于前端访问
     file_url = serializers.SerializerMethodField()
+    
+    # 视频文件URL（仅Live Photo）
+    video_file_url = serializers.SerializerMethodField()
     
     class Meta:
         # 指定模型
@@ -21,6 +25,8 @@ class PostMediaSerializer(serializers.ModelSerializer):
             'media_type',
             'file',
             'file_url',
+            'video_file',
+            'video_file_url',
             'order',
             'created_at'
         ]
@@ -32,6 +38,15 @@ class PostMediaSerializer(serializers.ModelSerializer):
         if obj.file:
             # 返回文件的URL
             return obj.file.url
+        return None
+    
+    def get_video_file_url(self, obj):
+        """
+        获取视频文件的完整URL（仅Live Photo）
+        """
+        if obj.video_file:
+            # 返回视频文件的URL
+            return obj.video_file.url
         return None
 
 
@@ -120,6 +135,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
         # 从验证后的数据中提取媒体文件和类型
         media_files = validated_data.pop('media_files', [])
         media_types = validated_data.pop('media_types', [])
+        video_files = validated_data.pop('video_files', [])
         
         # 使用事务包装所有数据库操作，减少IO开销
         with transaction.atomic():
@@ -136,6 +152,26 @@ class PostCreateSerializer(serializers.ModelSerializer):
                     temp_media = PostMedia(post=post, media_type=media_type, order=i)
                     # 保存文件到磁盘（文件IO是必须的，无法避免）
                     temp_media.file.save(media_file.name, media_file, save=False)
+                    
+                    # 如果是Live Photo，尝试从EXIF中提取视频
+                    if media_type == 'live':
+                        # 检查是否为Live Photo
+                        if is_live_photo(temp_media.file.path):
+                            # 尝试提取视频
+                            extracted_video_path = extract_video_from_live_photo(temp_media.file.path)
+                            if extracted_video_path:
+                                # 保存提取的视频文件
+                                with open(extracted_video_path, 'rb') as f:
+                                    from django.core.files import File
+                                    temp_media.video_file.save(
+                                        os.path.basename(extracted_video_path),
+                                        File(f, name=os.path.basename(extracted_video_path)),
+                                        save=False
+                                    )
+                        # 如果有手动上传的视频，使用手动上传的视频
+                        elif i < len(video_files) and video_files[i]:
+                            temp_media.video_file.save(video_files[i].name, video_files[i], save=False)
+                    
                     # 添加到批量创建列表
                     media_objects.append(temp_media)
                 
