@@ -38,7 +38,39 @@ def extract_video_from_live_photo(image_path):
                 
                 if mp4_pos >= 0:
                     logger.info(f'Found MP4 video data in file tail at position {mp4_pos}')
-                    video_data = tail_data[mp4_pos:]
+                    
+                    # 检查 mdat box 是否使用 64 位大小
+                    mdat_pos_in_tail = tail_data.find(b'mdat', mp4_pos)
+                    if mdat_pos_in_tail >= 0:
+                        mdat_size = int.from_bytes(tail_data[mdat_pos_in_tail-4:mdat_pos_in_tail], 'big')
+                        logger.info(f'mdat box size field: {mdat_size}')
+                        
+                        if mdat_size == 1:
+                            # 64 位大小标记，检查是否有效
+                            large_size = int.from_bytes(tail_data[mdat_pos_in_tail+8:mdat_pos_in_tail+16], 'big')
+                            logger.info(f'mdat box 64-bit size field: {large_size}')
+                            
+                            # 检查 64 位大小是否合理
+                            if large_size > len(tail_data):
+                                # 64 位大小无效，手动计算 mdat 数据大小
+                                logger.info(f'mdat box 64-bit size is invalid, using manual calculation')
+                                # mdat 数据从 mdat_pos + 16 开始，到 tail_data 末尾
+                                mdat_data = tail_data[mdat_pos_in_tail + 16:]
+                                logger.info(f'mdat data size: {len(mdat_data)} bytes')
+                                
+                                # 重建 MP4 文件
+                                # 从 ftyp 到 mdat 头部 + mdat 数据
+                                video_data = tail_data[mp4_pos:mdat_pos_in_tail + 8]  # ftyp + moov + free + mdat 头部(8 bytes)
+                                video_data += mdat_data  # mdat 数据
+                                
+                                logger.info(f'Created corrected MP4: {len(video_data)} bytes')
+                            else:
+                                # 64 位大小有效，直接使用
+                                video_data = tail_data[mp4_pos:]
+                        else:
+                            video_data = tail_data[mp4_pos:]
+                    else:
+                        video_data = tail_data[mp4_pos:]
                 else:
                     # 尝试其他 MP4 魔数
                     mp4_magic2 = b'\x00\x00\x00\x18\x66\x74\x79\x70'
