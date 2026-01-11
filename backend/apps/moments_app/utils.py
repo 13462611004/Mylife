@@ -71,18 +71,13 @@ def extract_video_from_live_photo(image_path):
         with open(image_path, 'rb') as f:
             file_data = f.read()
         
-        # 检查是否为 MP4 文件
-        # MP4 文件的魔数是 00 00 00 XX ftyp，其中 XX 是 box 的大小
-        mp4_magic = b'\x00\x00\x00\x18ftypmp42'  # MP4 v2
-        mp4_magic2 = b'\x00\x00\x00\x20ftypmp42'  # MP4 v2 (larger box)
-        mp4_magic3 = b'\x00\x00\x00\x14ftyp'  # MOV/MP4
-        
         # 在文件末尾查找 MP4 魔数
+        mp4_magic = b'\x00\x00\x00\x18ftypmp42'
         mp4_pos = file_data.rfind(mp4_magic)
+        
         if mp4_pos == -1:
-            mp4_pos = file_data.rfind(mp4_magic2)
-        if mp4_pos == -1:
-            mp4_pos = file_data.rfind(mp4_magic3)
+            mp4_magic = b'\x00\x00\x00\x18ftyp'
+            mp4_pos = file_data.rfind(mp4_magic)
         
         if mp4_pos == -1:
             logger.info(f'No MP4 magic found in {image_path}')
@@ -90,8 +85,27 @@ def extract_video_from_live_photo(image_path):
         
         logger.info(f'Found MP4 magic at position {mp4_pos}')
         
-        # 提取视频数据
-        video_data = file_data[mp4_pos:]
+        # 找到 mdat box
+        mdat_magic = b'mdat'
+        mdat_pos = file_data.find(mdat_magic, mp4_pos)
+        
+        if mdat_pos == -1:
+            logger.info(f'No mdat box found in {image_path}')
+            return None
+        
+        # 读取 mdat box 大小
+        mdat_size = int.from_bytes(file_data[mdat_pos-4:mdat_pos], 'big')
+        
+        # 如果 mdat_size = 1，说明使用 64 位大小
+        if mdat_size == 1:
+            # 读取 64 位大小
+            mdat_size = int.from_bytes(file_data[mdat_pos+8:mdat_pos+16], 'big')
+            logger.info(f'mdat box uses 64-bit size: {mdat_size} bytes')
+        
+        # 提取完整的视频数据
+        video_data = file_data[mp4_pos:mdat_pos + mdat_size]
+        
+        logger.info(f'Extracted video data: {len(video_data)} bytes')
         
         # 保存视频文件
         video_path = image_path.replace('.jpg', '.mp4')
