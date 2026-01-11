@@ -146,29 +146,27 @@ class PostCreateSerializer(serializers.ModelSerializer):
             post = Post.objects.create(**validated_data)
             
             # 创建媒体文件（如果有的话）
-            if media_files and media_types:
+            if media_files:
                 # 先保存所有文件到磁盘，然后批量创建数据库记录
                 # 这样可以减少数据库IO操作（从N次减少到1次）
                 media_objects = []
-                for i, (media_file, media_type) in enumerate(zip(media_files, media_types)):
+                for i, media_file in enumerate(media_files):
                     # 创建临时PostMedia实例用于保存文件
-                    temp_media = PostMedia(post=post, media_type=media_type, order=i)
+                    temp_media = PostMedia(post=post, media_type='image', order=i)
                     # 保存文件到磁盘（文件IO是必须的，无法避免）
                     temp_media.file.save(media_file.name, media_file, save=False)
                     
-                    # 如果是Live Photo，尝试从EXIF中提取视频
-                    if media_type == 'live':
-                        # 检查是否为Live Photo
-                        if is_live_photo(temp_media.file.path):
-                            # 尝试提取视频
-                            extracted_video_path = extract_video_from_live_photo(temp_media.file.path)
-                            if extracted_video_path:
-                                # 直接设置 video_file.name 为简单文件名
-                                video_filename = os.path.basename(extracted_video_path)
-                                temp_media.video_file.name = f'posts/{dayjs(post.created_at).format("YYYY/MM/DD")}/{video_filename}'
-                        # 如果有手动上传的视频，使用手动上传的视频
-                        elif i < len(video_files) and video_files[i]:
-                            temp_media.video_file.save(video_files[i].name, video_files[i], save=False)
+                    # 使用 is_live_photo() 自动检测是否为 Live Photo
+                    if is_live_photo(temp_media.file.path):
+                        # 是 Live Photo，修改 media_type 并尝试提取视频
+                        temp_media.media_type = 'live'
+                        
+                        # 尝试提取视频
+                        extracted_video_path = extract_video_from_live_photo(temp_media.file.path)
+                        if extracted_video_path:
+                            # 直接设置 video_file.name 为简单文件名
+                            video_filename = os.path.basename(extracted_video_path)
+                            temp_media.video_file.name = f'posts/{dayjs(post.created_at).format("YYYY/MM/DD")}/{video_filename}'
                     
                     # 添加到批量创建列表
                     media_objects.append(temp_media)
