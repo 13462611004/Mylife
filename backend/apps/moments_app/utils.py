@@ -55,8 +55,16 @@ def extract_video_from_live_photo(image_path):
                 return None
         
         # 保存视频文件
-        video_path = image_path.replace('.jpg', '.mp4')
-        if not video_path.endswith('.mp4'):
+        # 使用与原图片相同的文件名，只是将后缀改为 .mp4
+        video_path = image_path
+        if video_path.lower().endswith('.jpg'):
+            video_path = video_path[:-4] + '.mp4'
+        elif video_path.lower().endswith('.jpeg'):
+            video_path = video_path[:-5] + '.mp4'
+        elif video_path.lower().endswith('.png'):
+            video_path = video_path[:-4] + '.mp4'
+        else:
+            # 如果不是标准后缀，直接替换最后一部分
             video_path = video_path.rsplit('.', 1)[0] + '.mp4'
         
         # 写入视频文件
