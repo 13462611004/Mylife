@@ -163,14 +163,9 @@ class PostCreateSerializer(serializers.ModelSerializer):
                             # 尝试提取视频
                             extracted_video_path = extract_video_from_live_photo(temp_media.file.path)
                             if extracted_video_path:
-                                # 保存提取的视频文件
-                                with open(extracted_video_path, 'rb') as f:
-                                    from django.core.files import File
-                                    temp_media.video_file.save(
-                                        os.path.basename(extracted_video_path),
-                                        File(f, name=os.path.basename(extracted_video_path)),
-                                        save=False
-                                    )
+                                # 直接设置 video_file.name 为简单文件名
+                                video_filename = os.path.basename(extracted_video_path)
+                                temp_media.video_file.name = f'posts/{dayjs(post.created_at).format("YYYY/MM/DD")}/{video_filename}'
                         # 如果有手动上传的视频，使用手动上传的视频
                         elif i < len(video_files) and video_files[i]:
                             temp_media.video_file.save(video_files[i].name, video_files[i], save=False)
