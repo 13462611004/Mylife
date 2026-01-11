@@ -2,6 +2,7 @@ import subprocess
 import os
 import logging
 import piexif
+from motion_photo_splitter.__main__ import Splitter
 from PIL import Image, ExifTags, ImageOps
 
 logger = logging.getLogger(__name__)
@@ -17,35 +18,80 @@ def extract_video_from_live_photo(image_path):
         视频文件路径，如果提取失败则返回 None
     """
     try:
-        # 读取文件的尾部，查找视频数据
+        # 读取 XMP 元数据
+        image = Image.open(image_path)
+        exif_data = image._getexif()
+        
+        if not exif_data:
+            logger.info(f'No EXIF data found in {image_path}')
+            return None
+        
+        # 检查是否为 Live Photo
+        # 标签 271 = "meizu", 272 = "MEIZU"
+        make_tag = exif_data.get(271, b'')
+        if isinstance(make_tag, bytes):
+            make = make_tag.decode('utf-8', errors='ignore').lower()
+        elif isinstance(make_tag, str):
+            make = make_tag.lower()
+        else:
+            make = str(make_tag).lower()
+        
+        model_tag = exif_data.get(272, b'')
+        if isinstance(model_tag, bytes):
+            model = model_tag.decode('utf-8', errors='ignore').lower()
+        elif isinstance(model_tag, str):
+            model = model_tag.lower()
+        else:
+            model = str(model_tag).lower()
+        
+        is_live_photo = False
+        
+        # 检查 XMP 元数据
+        for tag, value in exif_data.items():
+            if isinstance(value, bytes):
+                try:
+                    xmp_data = value.decode('utf-8', errors='ignore')
+                    if 'Camera:MotionPhoto="1"' in xmp_data or "Camera:MotionPhoto='1'" in xmp_data:
+                        logger.info(f'Found MotionPhoto in EXIF tag {tag}')
+                        is_live_photo = True
+                        break
+                except:
+                    pass
+        
+        # 检查是否为魅族设备
+        if 'meizu' in make or 'meizu' in model:
+            logger.info(f'Found Meizu device: {make} {model}')
+            is_live_photo = True
+        
+        if not is_live_photo:
+            logger.info(f'Not a Live Photo: {image_path}')
+            return None
+        
+        # 读取文件，查找视频数据
         with open(image_path, 'rb') as f:
-            f.seek(0, 2)  # 移动到文件尾部
-            file_size = f.tell()
-            
-            # 读取文件的最后 1MB 数据
-            f.seek(max(0, file_size - 1024 * 1024))
-            tail_data = f.read()
-            
-            logger.info(f'File size: {file_size}, Tail data size: {len(tail_data)}')
-            
-            # 检查尾部数据是否为有效的视频文件
-            # MP4 文件的魔数是 00 00 00 18 66 74 70 79 6D 70 61
-            # MOV 文件的魔数是 00 00 00 14 66 74 79 64
-            if len(tail_data) > 1024:
-                # 检查是否为 MP4 文件
-                if tail_data.startswith(b'\x00\x00\x00\x18\x66\x74\x79\x70\x6d\x70\x34\x32') or tail_data.startswith(b'\x00\x00\x00\x20\x66\x74\x79\x70\x6d\x70\x34\x32'):
-                    logger.info(f'Found MP4 video data in file tail')
-                    video_data = tail_data
-                # 检查是否为 MOV 文件
-                elif tail_data.startswith(b'\x00\x00\x00\x14\x66\x74\x79\x70') or tail_data.startswith(b'\x00\x00\x00\x20\x66\x74\x79\x70'):
-                    logger.info(f'Found MOV video data in file tail')
-                    video_data = tail_data
-                else:
-                    logger.info(f'Tail data does not look like a video file')
-                    return None
-            else:
-                logger.info(f'Tail data is too small to be a video file')
-                return None
+            file_data = f.read()
+        
+        # 检查是否为 MP4 文件
+        # MP4 文件的魔数是 00 00 00 XX ftyp，其中 XX 是 box 的大小
+        mp4_magic = b'\x00\x00\x00\x18ftypmp42'  # MP4 v2
+        mp4_magic2 = b'\x00\x00\x00\x20ftypmp42'  # MP4 v2 (larger box)
+        mp4_magic3 = b'\x00\x00\x00\x14ftyp'  # MOV/MP4
+        
+        # 在文件末尾查找 MP4 魔数
+        mp4_pos = file_data.rfind(mp4_magic)
+        if mp4_pos == -1:
+            mp4_pos = file_data.rfind(mp4_magic2)
+        if mp4_pos == -1:
+            mp4_pos = file_data.rfind(mp4_magic3)
+        
+        if mp4_pos == -1:
+            logger.info(f'No MP4 magic found in {image_path}')
+            return None
+        
+        logger.info(f'Found MP4 magic at position {mp4_pos}')
+        
+        # 提取视频数据
+        video_data = file_data[mp4_pos:]
         
         # 保存视频文件
         video_path = image_path.replace('.jpg', '.mp4')
