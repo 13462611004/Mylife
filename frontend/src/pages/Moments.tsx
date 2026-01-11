@@ -131,9 +131,13 @@ const Moments: React.FC = () => {
                   });
                 }}
                 onError={(e) => {
+                  const videoEl = e.target as HTMLVideoElement;
                   console.error('❌ Video error:', {
                     video_file_url: item.video_file_url,
-                    error: e
+                    errorCode: videoEl.error?.code,
+                    errorMessage: videoEl.error?.message,
+                    networkState: videoEl.networkState,
+                    readyState: videoEl.readyState
                   });
                 }}
               />
