@@ -39,49 +39,36 @@ def extract_video_from_live_photo(image_path):
         # 记录所有 EXIF 标签，用于调试
         logger.info(f'EXIF tags found: {list(exif_data.keys())}')
         
-        # 检查常见的视频标签
-        for tag in ['VideoData', 'MotionPhotoVideo', 'LivePhotoVideo', 'EmbeddedVideo']:
-            if tag in exif_data:
-                video_data = exif_data[tag]
-                logger.info(f'Found video data in EXIF tag: {tag}')
+        # 优先检查Container XMP元数据（Android动态照片标准）
+        if 'Container' in exif_data:
+            container_data = exif_data['Container']
+            logger.info(f'Found Container XMP data: {container_data}')
+            
+            # 检查是否有MotionPhoto容器
+            motion_photo_found = False
+            if isinstance(container_data, list):
+                for item in container_data:
+                    if isinstance(item, dict) and item.get('Semantic') == 'MotionPhoto':
+                        motion_photo_found = True
+                        logger.info(f'Found MotionPhoto container item: {item}')
+                        # 提取视频数据
+                        if 'Data' in item:
+                            video_data = item['Data']
+                            logger.info(f'Found video data in MotionPhoto container, size: {len(video_data) if isinstance(video_data, (str, bytes)) else "unknown"}')
+                            break
+            
+            if motion_photo_found and video_data:
+                logger.info(f'Successfully extracted video from MotionPhoto container')
                 break
         
-        # 如果没有找到常见的视频标签，尝试从所有 EXIF 标签中查找
+        # 如果没有找到MotionPhoto，继续检查常见的视频标签
         if not video_data:
-            logger.info(f'No common video tags found, checking all EXIF tags')
-            for tag in exif_data:
-                try:
-                    value = exif_data[tag]
-                    # 检查是否为字符串且包含视频相关关键词
-                    if isinstance(value, str) and any(keyword in value.lower() for keyword in ['video', 'mp4', 'mov', 'live']):
-                        logger.info(f'Found potential video data in tag {tag}: {value[:100]}')
-                        # 尝试解析为 base64 编码的视频数据
-                        if value.startswith('data:video') or value.startswith('data:video/mp4') or value.startswith('data:video/mov'):
-                            try:
-                                import base64
-                                if ',' in value:
-                                    header, data = value.split(',', 1)
-                                    video_bytes = base64.b64decode(data)
-                                else:
-                                    video_bytes = base64.b64decode(value.split(':', 1)[1])
-                                video_data = video_bytes
-                                logger.info(f'Successfully extracted video from tag {tag}')
-                                break
-                            except Exception as e:
-                                logger.warning(f'Failed to decode base64 data from tag {tag}: {e}')
-                        # 检查是否为 bytes 类型（可能是原始视频数据）
-                        elif isinstance(value, bytes):
-                            # 检查是否为有效的视频数据（大于 1KB）
-                            if len(value) > 1024:
-                                logger.info(f'Found potential video data in tag {tag} (bytes, size: {len(value)})')
-                                video_data = value
-                                break
-                except Exception as e:
-                    logger.warning(f'Failed to process tag {tag}: {e}')
-        
-        if not video_data:
-            logger.info(f'No video data found in EXIF metadata')
-            return None
+            logger.info(f'No MotionPhoto container found, checking common video tags')
+            for tag in ['VideoData', 'MotionPhotoVideo', 'LivePhotoVideo', 'EmbeddedVideo']:
+                if tag in exif_data:
+                    video_data = exif_data[tag]
+                    logger.info(f'Found video data in EXIF tag: {tag}')
+                    break
         
         # 保存视频文件
         video_path = image_path.replace('.jpg', '.mp4')
