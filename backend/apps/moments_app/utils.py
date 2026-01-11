@@ -83,9 +83,18 @@ def extract_video_from_live_photo(image_path):
                                 video_data += mdat_data  # mdat 数据
                                 
                                 logger.info(f'Created corrected MP4: {len(video_data)} bytes')
+                                
+                                # 验证 mdat 数据是否有效（检查是否被大量填充）
+                                if not _validate_video_data(video_data):
+                                    logger.warning(f'Video data appears to be invalid (mostly filler data), skipping extraction')
+                                    return None
                             else:
                                 # 64 位大小有效，直接使用
                                 video_data = tail_data[mp4_pos:]
+                                # 同样验证数据
+                                if not _validate_video_data(video_data):
+                                    logger.warning(f'Video data appears to be invalid (mostly filler data), skipping extraction')
+                                    return None
                         else:
                             video_data = tail_data[mp4_pos:]
                     else:
@@ -167,4 +176,62 @@ def is_live_photo(image_path):
         
     except Exception as e:
         logger.error(f'Error detecting live photo: {e}')
+        return False
+
+
+def _validate_video_data(video_data):
+    """
+    验证提取的视频数据是否有效
+    
+    Args:
+        video_data: 视频文件数据
+        
+    Returns:
+        bool: 数据是否有效
+    """
+    try:
+        # 查找 mdat box
+        mdat_pos = video_data.find(b'mdat')
+        if mdat_pos < 0:
+            logger.warning('No mdat box found in video data')
+            return False
+        
+        # mdat 数据从 mdat_pos + 8 或 +16 开始（取决于是否有64位大小）
+        mdat_size = int.from_bytes(video_data[mdat_pos-4:mdat_pos], 'big')
+        
+        if mdat_size == 1:
+            # 64 位大小，从 mdat_pos + 16 开始
+            mdat_data = video_data[mdat_pos + 16:]
+        else:
+            # 普通大小，从 mdat_pos + 8 开始
+            mdat_data = video_data[mdat_pos + 8:]
+        
+        # 检查 mdat 数据大小
+        if len(mdat_data) < 1024:
+            logger.warning(f'mdat data too small: {len(mdat_data)} bytes')
+            return False
+        
+        # 检查 mdat 数据是否被大量填充
+        # 计算非 0x5A 字节的比例（0x5A 是常见的填充字节）
+        non_filler_bytes = sum(1 for byte in mdat_data[:1000] if byte != 0x5A)
+        filler_ratio = 1 - (non_filler_bytes / min(len(mdat_data), 1000))
+        
+        # 如果填充字节超过 90%，认为数据无效
+        if filler_ratio > 0.9:
+            logger.warning(f'Video data appears to be mostly filler: {filler_ratio * 100:.1f}% filler bytes')
+            return False
+        
+        # 检查是否有实际的视频帧数据特征
+        # H.264 帧通常以 0x00 0x00 0x00 0x01 或 0x00 0x00 0x01 开头
+        has_nalu_header = b'\\x00\\x00\\x00\\x01' in mdat_data[:5000] or b'\\x00\\x00\\x01' in mdat_data[:5000]
+        
+        if not has_nalu_header:
+            logger.warning('No H.264 NALU headers found in video data')
+            # 不直接返回 False，因为有些格式可能不以标准 NALU 头开头
+        
+        logger.info(f'Video data validation passed: {len(mdat_data)} bytes, {filler_ratio * 100:.1f}% filler ratio')
+        return True
+        
+    except Exception as e:
+        logger.error(f'Error validating video data: {e}')
         return False
