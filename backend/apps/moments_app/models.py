@@ -67,7 +67,20 @@ class PostMedia(models.Model):
         verbose_name='媒体文件',
         validators=[
             FileExtensionValidator(
-                allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'mp4', 'mov', 'avi', 'webm']
+                allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'mp4', 'mov', 'avi', 'webm', 'heic', 'heif']
+            )
+        ]
+    )
+    
+    # Live Photo配套视频（仅当media_type为'live'时有值）
+    video_file = models.FileField(
+        upload_to='posts/%Y/%m/%d/',
+        verbose_name='Live Photo视频',
+        blank=True,
+        null=True,
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=['mov', 'mp4']
             )
         ]
     )

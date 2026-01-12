@@ -332,6 +332,105 @@
   .admin-stats .ant-statistic-content {
     font-size: 24px;
   }
+  
+  /* 表格响应式处理 */
+  .admin-table .ant-table {
+    overflow-x: auto;
+  }
+  
+  .admin-table .ant-table-container {
+    min-width: 600px;
+  }
+  
+  /* 表单布局适配 */
+  .admin-filter .ant-row {
+    flex-direction: column;
+  }
+  
+  .admin-filter .ant-col {
+    margin-bottom: 16px;
+    width: 100% !important;
+  }
+  
+  /* 按钮和输入框适配 */
+  .admin-filter .ant-btn {
+    width: 100%;
+  }
+  
+  .admin-filter .ant-input,
+  .admin-filter .ant-picker,
+  .admin-filter .ant-select {
+    width: 100%;
+  }
+  
+  /* 模态框适配 */
+  .admin-modal .ant-modal {
+    margin: 0;
+    max-width: 100%;
+  }
+  
+  .admin-modal .ant-modal-body {
+    padding: 16px;
+  }
+  
+  /* 上传区域适配 */
+  .admin-upload {
+    padding: 20px;
+  }
+  
+  /* 标签页间距适配 */
+  .admin-tabs .ant-tabs-nav {
+    padding: 0 16px;
+  }
+  
+  /* 按钮组适配 */
+  .admin-container .ant-space {
+    width: 100%;
+  }
+  
+  .admin-container .ant-space-item {
+    width: 100%;
+  }
+  
+  /* 卡片间距适配 */
+  .admin-container .ant-card {
+    margin-bottom: 16px;
+  }
+  
+  /* 统计卡片适配 */
+  .admin-stats .ant-row {
+    gap: 12px;
+  }
+  
+  .admin-stats .ant-col {
+    width: calc(50% - 6px) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 超小屏幕适配 */
+  .admin-container {
+    padding: 12px;
+  }
+  
+  /* 统计卡片改为单列 */
+  .admin-stats .ant-col {
+    width: 100% !important;
+  }
+  
+  /* 模态框标题字体大小 */
+  .admin-modal .ant-modal-title {
+    font-size: 15px;
+  }
+  
+  /* 按钮字体大小 */
+  .admin-btn,
+  .admin-btn-success,
+  .admin-btn-danger,
+  .admin-btn-secondary {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {

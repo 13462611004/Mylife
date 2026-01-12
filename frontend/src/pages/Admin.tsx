@@ -938,43 +938,41 @@ const Admin: React.FC = () => {
             />
           </Tabs.TabPane>
           <Tabs.TabPane tab="朋友圈" key="3">
-            <div style={{ marginBottom: 16 }}>
-              <Space>
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleAddPost}>
-                  添加朋友圈
-                </Button>
-                <Input.Search
-                  placeholder="搜索内容或标签"
-                  style={{ width: 300 }}
-                  onSearch={handlePostSearch}
-                  onChange={(e) => setPostSearchText(e.target.value)}
-                  allowClear
-                />
-                <DatePicker
-                  placeholder="开始日期"
-                  value={postStartDate}
-                  onChange={(date) => {
-                    setPostStartDate(date);
-                    if (date && postEndDate && date.isAfter(postEndDate)) {
-                      message.warning('开始日期不能晚于结束日期');
-                      return;
-                    }
-                    fetchPosts();
-                  }}
-                />
-                <DatePicker
-                  placeholder="结束日期"
-                  value={postEndDate}
-                  onChange={(date) => {
-                    setPostEndDate(date);
-                    if (date && postStartDate && date.isBefore(postStartDate)) {
-                      message.warning('结束日期不能早于开始日期');
-                      return;
-                    }
-                    fetchPosts();
-                  }}
-                />
-              </Space>
+            <div className="admin-moments-toolbar" style={{ marginBottom: 16 }}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleAddPost}>
+                添加朋友圈
+              </Button>
+              <Input.Search
+                placeholder="搜索内容或标签"
+                style={{ width: 300 }}
+                onSearch={handlePostSearch}
+                onChange={(e) => setPostSearchText(e.target.value)}
+                allowClear
+              />
+              <DatePicker
+                placeholder="开始日期"
+                value={postStartDate}
+                onChange={(date) => {
+                  setPostStartDate(date);
+                  if (date && postEndDate && date.isAfter(postEndDate)) {
+                    message.warning('开始日期不能晚于结束日期');
+                    return;
+                  }
+                  fetchPosts();
+                }}
+              />
+              <DatePicker
+                placeholder="结束日期"
+                value={postEndDate}
+                onChange={(date) => {
+                  setPostEndDate(date);
+                  if (date && postStartDate && date.isBefore(postStartDate)) {
+                    message.warning('结束日期不能早于开始日期');
+                    return;
+                  }
+                  fetchPosts();
+                }}
+              />
             </div>
 
             {postStats && (
@@ -1007,6 +1005,7 @@ const Admin: React.FC = () => {
               dataSource={posts}
               rowKey="id"
               loading={loading}
+              scroll={{ x: 1200 }}
               pagination={{
                 pageSize: 10,
                 showSizeChanger: true,

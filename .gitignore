@@ -20,34 +20,37 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Virtual environments
 venv/
 env/
 ENV/
-.venv
 
 # Django
 *.log
+*.pot
+*.pyc
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-/media
-/staticfiles
-/static
+media/
+staticfiles/
 
-# Node.js / React
+# Node.js
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 .npm
-.eslintcache
-.parcel-cache
+.yarn-integrity
 
-# Build outputs
-build/
-dist/
-*.tsbuildinfo
+# React
+/build
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # IDE
 .vscode/
@@ -55,25 +58,46 @@ dist/
 *.swp
 *.swo
 *~
+
+# Trae
+.trae/
+
+# OS
 .DS_Store
+Thumbs.db
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Testing
-coverage/
-.nyc_output/
-*.lcov
-
-# Misc
-*.bak
-*.tmp
-.cache/
-# 前端缓存文件
-node_modules/.cache/
+# Logs
 *.log
-*.log.*
+logs/
+tmp/
+
+# FRP
+frp/frps
+frp/frps.toml
+frp/frpc.log
+
+# Media files
+backend/media/
+backend/staticfiles/
+frontend/public/maps/
+
+# Downloaded files
+download_all_cities.sh
+download_all_district_maps.sh
+download_cities.py
+download_city_maps.sh
+download_district_maps.sh
+download_official_map_data.sh
+verify_map_files.sh
+official_echarts_maps/
+
+# Exiftool
+backend/exiftool
+
+# Python cache
+*.pyc
+__pycache__/
+
+# Temporary files
+*.tmp
+*.temp

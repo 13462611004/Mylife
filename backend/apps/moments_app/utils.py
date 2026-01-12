@@ -74,18 +74,11 @@ def extract_video_from_live_photo(image_path):
                             if large_size > max_reasonable_size:
                                 # 64 位大小无效，使用文件末尾的所有数据
                                 logger.info(f'mdat box 64-bit size is invalid ({large_size}), using all data from mdat to end')
-                                # mdat 数据从 mdat_pos_in_tail + 16 开始，到 tail_data 末尾
-                                mdat_data = tail_data[mdat_pos_in_tail + 16:]
-                                logger.info(f'mdat data size: {len(mdat_data)} bytes')
+                                # 直接提取整个MP4数据（包含正确的box结构）
+                                video_data = tail_data[mp4_pos:]
+                                logger.info(f'Extracted complete MP4 data: {len(video_data)} bytes')
                                 
-                                # 重建 MP4 文件
-                                # 从 ftyp 到 mdat 头部 + mdat 数据
-                                video_data = tail_data[mp4_pos:mdat_pos_in_tail + 8]  # ftyp + moov + free + mdat 头部(8 bytes)
-                                video_data += mdat_data  # mdat 数据
-                                
-                                logger.info(f'Created corrected MP4: {len(video_data)} bytes')
-                                
-                                # 验证 mdat 数据是否有效（检查是否被大量填充）
+                                # 验证视频数据是否有效
                                 if not _validate_video_data(video_data):
                                     logger.warning(f'Video data appears to be invalid (mostly filler data), skipping extraction')
                                     return None
@@ -217,9 +210,29 @@ def _validate_video_data(video_data):
         non_filler_bytes = sum(1 for byte in mdat_data[:1000] if byte != 0x5A)
         filler_ratio = 1 - (non_filler_bytes / min(len(mdat_data), 1000))
         
-        # 如果填充字节超过 90%，认为数据无效
+        # 如果填充字节超过 80%，尝试跳过填充字节后再验证
+        if filler_ratio > 0.8:
+            logger.warning(f'Video data has high filler ratio: {filler_ratio * 100:.1f}% filler bytes in first 1000')
+            
+            # 尝试跳过填充字节，查找真正的视频数据
+            real_data_start = 0
+            for i in range(min(len(mdat_data), 10000)):  # 最多检查10KB
+                if mdat_data[i] != 0x5A:
+                    real_data_start = i
+                    break
+            
+            if real_data_start > 0:
+                logger.info(f'Found real video data at offset {real_data_start} after {real_data_start} filler bytes')
+                mdat_data = mdat_data[real_data_start:]
+                
+                # 重新计算填充比例
+                non_filler_bytes = sum(1 for byte in mdat_data[:1000] if byte != 0x5A)
+                filler_ratio = 1 - (non_filler_bytes / min(len(mdat_data), 1000))
+                logger.info(f'After skipping filler: {filler_ratio * 100:.1f}% filler ratio, {len(mdat_data)} bytes of data')
+        
+        # 再次检查填充比例
         if filler_ratio > 0.9:
-            logger.warning(f'Video data appears to be mostly filler: {filler_ratio * 100:.1f}% filler bytes')
+            logger.warning(f'Video data still appears to be mostly filler: {filler_ratio * 100:.1f}% filler bytes')
             return False
         
         # 检查是否有实际的视频帧数据特征

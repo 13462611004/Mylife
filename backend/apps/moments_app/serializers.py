@@ -1,7 +1,9 @@
+import os
 from rest_framework import serializers
 from django.db import transaction
 from .models import Post, PostMedia
 from .utils import extract_video_from_live_photo, is_live_photo
+from datetime import datetime
 
 
 class PostMediaSerializer(serializers.ModelSerializer):
@@ -166,7 +168,9 @@ class PostCreateSerializer(serializers.ModelSerializer):
                         if extracted_video_path:
                             # 直接设置 video_file.name 为简单文件名
                             video_filename = os.path.basename(extracted_video_path)
-                            temp_media.video_file.name = f'posts/{dayjs(post.created_at).format("YYYY/MM/DD")}/{video_filename}'
+                            # 使用 Python datetime 格式化日期
+                            date_dir = post.created_at.strftime('%Y/%m/%d')
+                            temp_media.video_file.name = f'posts/{date_dir}/{video_filename}'
                     
                     # 添加到批量创建列表
                     media_objects.append(temp_media)

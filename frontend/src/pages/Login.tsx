@@ -11,13 +11,18 @@ const Login: React.FC = () => {
   const handleLogin = async (values: { password: string }) => {
     setLoading(true);
     try {
-      await apiClient.post('/api/admin/login/', {
+      console.log('登录请求开始，API地址:', apiClient.defaults.baseURL);
+      const response = await apiClient.post('/api/admin/login/', {
         password: values.password,
       });
+      console.log('登录请求成功，响应:', response);
       message.success('登录成功');
       localStorage.setItem('isAdmin', 'true');
       navigate('/admin');
     } catch (error: any) {
+      console.log('登录请求失败，完整错误信息:', error);
+      console.log('错误响应:', error.response);
+      console.log('错误数据:', error.response?.data);
       message.error(error.response?.data?.error || '登录失败');
     } finally {
       setLoading(false);

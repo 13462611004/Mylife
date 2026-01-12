@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-f7qr*k-r973o5$&9=yjro@4z#62nrcnyj4kqy_i5*lf-d%c8*q
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['8.153.95.63', '172.31.180.1', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['8.153.95.63', '172.31.180.1', 'localhost', '127.0.0.1', '192.168.31.142', '*']
 
 
 # Application definition
@@ -165,7 +165,12 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',  # React默认开发端口
     'http://127.0.0.1:3000',  # 本地IP（Edge浏览器可能使用）
     'http://172.31.180.1:3000',  # 云服务器内网前端端口
-    'http://8.153.95.63:3000',  # 云服务器公网前端端口
+    'http://8.153.95.63:3000',  # 云服务器公网前端端口（旧）
+    'http://8.153.81.3:3000',  # 云服务器公网前端端口（新）
+    'https://floppy-files-draw.loca.lt',  # 前端公网地址（旧）
+    'https://cyan-pugs-show.loca.lt',  # 前端公网地址（旧）
+    'http://192.168.31.142:3000',  # 本地局域网地址
+    'https://backend-solo.loca.lt',  # 后端公网地址（用于跨域请求）
 ]
 CORS_ALLOW_CREDENTIALS = True  # 允许携带cookies
 CORS_ALLOW_HEADERS = [

@@ -3,7 +3,7 @@
 
 set -e
 
-PROJECT_DIR="/home/SOLO/Mylife"
+PROJECT_DIR="/Users/wangliang/Desktop/Mylife"
 BACKEND_DIR="${PROJECT_DIR}/backend"
 FRONTEND_DIR="${PROJECT_DIR}/frontend"
 PID_BACKEND="${PROJECT_DIR}/.backend.pid"
@@ -27,8 +27,8 @@ start_backend() {
     source venv/bin/activate
     
     # 使用 --noreload 减少文件监听，降低IOPS
-    # 输出重定向到 /dev/null 减少日志IO
-    nohup python manage.py runserver 0.0.0.0:8000 --noreload > /dev/null 2>&1 &
+    # 输出重定向到日志文件以便调试
+    nohup python manage.py runserver 0.0.0.0:8000 --noreload > backend.log 2>&1 &
     BACKEND_PID=$!
     echo $BACKEND_PID > "$PID_BACKEND"
     

@@ -1,0 +1,17 @@
+serverAddr = "8.153.81.3"
+serverPort = 7000
+auth.token = "mylife2024"
+
+[[proxies]]
+name = "frontend"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 3000
+remotePort = 3000
+
+[[proxies]]
+name = "backend"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 8000
+remotePort = 8000
