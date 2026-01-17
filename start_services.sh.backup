@@ -3,11 +3,11 @@
 
 set -e
 
-PROJECT_DIR="/Users/wangliang/Desktop/Mylife"
+PROJECT_DIR="/Users/wangliang/Desktop/Mylife_text"
 BACKEND_DIR="${PROJECT_DIR}/backend"
 FRONTEND_DIR="${PROJECT_DIR}/frontend"
-PID_BACKEND="${PROJECT_DIR}/.backend.pid"
-PID_FRONTEND="${PROJECT_DIR}/.frontend.pid"
+PID_BACKEND="${PROJECT_DIR}/.backend_test.pid"
+PID_FRONTEND="${PROJECT_DIR}/.frontend_test.pid"
 
 # 颜色输出
 GREEN='\033[0;32m'
@@ -30,8 +30,8 @@ start_backend() {
     # 输出重定向到日志文件以便调试
     # 测试环境使用8001端口，避免与主项目冲突
     # 测试环境启用DEBUG模式，方便开发和调试，并自动启用media文件服务
-    # export DJANGO_DEBUG=True  # 生产环境通过.env文件控制
-    nohup python manage.py runserver 0.0.0.0:8000 --noreload > backend.log 2>&1 &
+    export DJANGO_DEBUG=True
+    nohup python manage.py runserver 0.0.0.0:8001 --noreload > backend.log 2>&1 &
     BACKEND_PID=$!
     echo $BACKEND_PID > "$PID_BACKEND"
     
@@ -61,7 +61,7 @@ start_frontend() {
     # 禁用自动打开浏览器，减少IO
     # 输出重定向到 /dev/null 减少日志IO
     # 测试环境使用3001端口，避免与主项目冲突
-    BROWSER=none GENERATE_SOURCEMAP=false nohup npm start > /dev/null 2>&1 &
+    PORT=3001 BROWSER=none GENERATE_SOURCEMAP=false nohup npm start > /dev/null 2>&1 &
     FRONTEND_PID=$!
     echo $FRONTEND_PID > "$PID_FRONTEND"
     
@@ -69,11 +69,11 @@ start_frontend() {
     echo -e "${YELLOW}等待前端服务启动（约10-15秒）...${NC}"
     for i in {1..15}; do
         sleep 1
-        if curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 2>/dev/null | grep -q "200"; then
+        if curl -s -o /dev/null -w "%{http_code}" http://localhost:3001 2>/dev/null | grep -q "200"; then
             # 找到实际的React进程PID（测试环境）
-            ACTUAL_PID=$(pgrep -f "react-scripts.*start.*PORT=3000" | head -1)
+            ACTUAL_PID=$(pgrep -f "react-scripts.*start.*PORT=3001" | head -1)
             if [ -z "$ACTUAL_PID" ]; then
-                ACTUAL_PID=$(lsof -ti :3000 2>/dev/null | head -1)
+                ACTUAL_PID=$(lsof -ti :3001 2>/dev/null | head -1)
             fi
             if [ -n "$ACTUAL_PID" ]; then
                 echo $ACTUAL_PID > "$PID_FRONTEND"
@@ -84,7 +84,7 @@ start_frontend() {
     done
     
     # 如果超时，尝试查找实际PID
-    ACTUAL_PID=$(lsof -ti :3000 2>/dev/null | head -1)
+    ACTUAL_PID=$(lsof -ti :3001 2>/dev/null | head -1)
     if [ -n "$ACTUAL_PID" ]; then
         echo $ACTUAL_PID > "$PID_FRONTEND"
         echo -e "${GREEN}✓ 前端服务已启动（PID: $ACTUAL_PID，端口: 3001）${NC}"
@@ -114,7 +114,7 @@ stop_backend() {
         rm -f "$PID_BACKEND"
     else
         # 如果没有PID文件，尝试通过端口停止测试环境的服务（8001端口）
-        PID_ON_PORT=$(lsof -ti :8000 2>/dev/null)
+        PID_ON_PORT=$(lsof -ti :8001 2>/dev/null)
         if [ -n "$PID_ON_PORT" ]; then
             kill $PID_ON_PORT 2>/dev/null
             sleep 1
@@ -146,7 +146,7 @@ stop_frontend() {
         rm -f "$PID_FRONTEND"
     else
         # 如果没有PID文件，尝试通过端口停止测试环境的服务（3001端口）
-        PID_ON_PORT=$(lsof -ti :3000 2>/dev/null)
+        PID_ON_PORT=$(lsof -ti :3001 2>/dev/null)
         if [ -n "$PID_ON_PORT" ]; then
             kill $PID_ON_PORT 2>/dev/null
             sleep 1
@@ -171,7 +171,7 @@ status() {
     fi
     
     # 检查后端（优先检查测试环境端口）
-    BACKEND_PID=$(lsof -ti :8000 2>/dev/null | head -1)
+    BACKEND_PID=$(lsof -ti :8001 2>/dev/null | head -1)
     if [ -z "$BACKEND_PID" ]; then
         BACKEND_PID=$(pgrep -f "manage.py runserver.*8001" | head -1)
     fi
@@ -180,7 +180,7 @@ status() {
         
         # 检查端口监听（详细模式）
         if [ "$DETAILED" = "1" ]; then
-            if lsof -ti :8000 > /dev/null 2>&1; then
+            if lsof -ti :8001 > /dev/null 2>&1; then
                 echo -e "  ${GREEN}✓ 端口 8001 正在监听${NC}"
             else
                 echo -e "  ${RED}✗ 端口 8001 未监听${NC}"
@@ -188,7 +188,7 @@ status() {
         fi
         
         # 测试HTTP访问
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/marathon/ 2>/dev/null)
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/api/marathon/ 2>/dev/null)
         if [ "$HTTP_CODE" = "200" ]; then
             echo -e "  ${GREEN}状态码: $HTTP_CODE ✓${NC}"
         else
@@ -197,8 +197,8 @@ status() {
         
         # 详细模式：测试API端点
         if [ "$DETAILED" = "1" ]; then
-            echo -e "  ${YELLOW}测试 API (localhost:8000/api/moments/posts/):${NC}"
-            API_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/moments/posts/ 2>/dev/null)
+            echo -e "  ${YELLOW}测试 API (localhost:8001/api/moments/posts/):${NC}"
+            API_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/api/moments/posts/ 2>/dev/null)
             if [ "$API_CODE" = "200" ]; then
                 echo -e "    ${GREEN}✓ API 访问正常${NC}"
             else
@@ -214,9 +214,9 @@ status() {
     echo ""
     
     # 检查前端（多种匹配方式，优先检查测试环境端口）
-    FRONTEND_PID=$(lsof -ti :3000 2>/dev/null | head -1)
+    FRONTEND_PID=$(lsof -ti :3001 2>/dev/null | head -1)
     if [ -z "$FRONTEND_PID" ]; then
-        FRONTEND_PID=$(pgrep -f "react-scripts.*start.*PORT=3000" | head -1)
+        FRONTEND_PID=$(pgrep -f "react-scripts.*start.*PORT=3001" | head -1)
     fi
     if [ -z "$FRONTEND_PID" ]; then
         FRONTEND_PID=$(pgrep -f "react-scripts.*start.js" | head -1)
@@ -226,7 +226,7 @@ status() {
         
         # 检查端口监听（详细模式）
         if [ "$DETAILED" = "1" ]; then
-            if lsof -ti :3000 > /dev/null 2>&1; then
+            if lsof -ti :3001 > /dev/null 2>&1; then
                 echo -e "  ${GREEN}✓ 端口 3001 正在监听${NC}"
             else
                 echo -e "  ${RED}✗ 端口 3001 未监听${NC}"
@@ -234,7 +234,7 @@ status() {
         fi
         
         # 测试HTTP访问
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 2>/dev/null)
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001 2>/dev/null)
         if [ "$HTTP_CODE" = "200" ]; then
             echo -e "  ${GREEN}状态码: $HTTP_CODE ✓${NC}"
         else

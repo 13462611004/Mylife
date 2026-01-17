@@ -1,146 +1,356 @@
-/* 关于页面样式 - 极简风格 */
+/* ==================== 关于页面样式 - 极简现代风 ==================== */
+/* 设计理念：冷静、专业、可靠 */
+/* 视觉风格：极致的简洁、大量留白、内容为王 */
 
 .home-container {
-  max-width: 1200px;
+  max-width: var(--max-content-width); /* 统一宽度：1200px */
   margin: 0 auto;
-  padding: var(--spacing-page);
-  background-color: #FAF9F6;
+  padding: var(--spacing-lg); /* 与UIDesignDemo一致：32px */
+  background: transparent; /* 透明，让外层背景显示 */
   min-height: calc(100vh - 64px - 70px);
 }
 
-/* 个人简介卡片 */
-.intro-card {
-  background: #FFFFFF;
+/* 关于页面容器 - 与Demo完全一致 */
+.page-preview.about-page {
+  max-width: var(--max-content-width); /* 统一宽度：1200px */
+  margin: 0 auto;
+  background: #FFFFFF; /* 纯白背景 - 传达专业感 */
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-card);
+  min-height: 600px;
+}
+
+/* 个人简介卡片 - 完全按照Demo的样式 */
+.about-page .preview-intro-card {
+  background: #FAFAFA; /* 极浅灰背景 - 轻微区分 */
   border: none;
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
-  margin-bottom: var(--spacing-card);
-  padding: var(--spacing-element);
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  transition: all 0.3s ease;
 }
 
-.intro-card .ant-card-head {
-  border-bottom: 1px solid #F0F0F0;
-  padding: 16px 24px;
+.about-page .preview-intro-card:hover {
+  box-shadow: var(--shadow-hover);
 }
 
-.intro-card .ant-card-head-title {
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--about-accent);
+.about-page .preview-intro-card .ant-card-body {
+  padding: 0;
 }
 
-.intro-card p {
-  color: #595959;
-  font-size: 15px;
+.about-page .preview-intro-card h1 {
+  font-size: 28px;
+  font-weight: 600;
+  color: #1A1A1A;
+  margin-bottom: 8px;
+}
+
+.about-page .preview-intro-card h3 {
+  font-size: var(--font-size-h3);
+  font-weight: 600;
+  color: #1A1A1A;
+  margin-bottom: var(--spacing-sm);
+  font-family: var(--font-family);
+}
+
+.about-page .preview-intro-card p {
+  color: #666666; /* 中性灰文字 */
+  font-size: var(--font-size-body);
   line-height: 1.8;
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-sm);
 }
 
-/* 数据概览区域 */
-.stats-section {
-  margin-top: var(--spacing-card);
+.about-page .preview-intro-card p strong {
+  color: #2563EB; /* 专业蓝 - 主题色 */
+  font-weight: 600;
 }
 
-.stats-section h2 {
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--about-accent);
-  margin-bottom: var(--spacing-element);
-  padding-left: 8px;
-  border-left: 3px solid var(--about-secondary);
+/* 数据概览区域 - 完全按照Demo的样式 */
+.about-page .preview-stats-section {
+  margin-top: var(--spacing-lg);
 }
 
-.stats-section .ant-card {
+.about-page .preview-stats-section h2 {
+  font-size: var(--font-size-h2);
+  font-weight: 600;
+  color: #1A1A1A;
+  margin-bottom: var(--spacing-md);
+  padding-left: var(--spacing-xs);
+  border-left: 3px solid #2563EB;
+  font-family: var(--font-family);
+}
+
+.about-page .preview-stat-card {
   background: #FFFFFF;
-  border: none;
+  border: 1px solid #E5E7EB; /* 细边框 - 极简风格 */
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   transition: all 0.3s ease;
   height: 100%;
 }
 
-.stats-section .ant-card:hover {
-  box-shadow: var(--shadow-card-hover);
+.about-page .preview-stat-card:hover {
+  box-shadow: var(--shadow-hover);
   transform: translateY(-2px);
+  border-color: #2563EB; /* hover时边框变为主题色 */
 }
 
-.stats-section .ant-statistic-title {
-  font-size: 14px;
-  color: #8C8C8C;
-  margin-bottom: 8px;
+.about-page .ant-statistic-title {
+  font-size: var(--font-size-caption);
+  color: #999999; /* 辅助文字 - 浅灰 */
+  margin-bottom: var(--spacing-xs);
 }
 
-.stats-section .ant-statistic-content {
+.about-page .ant-statistic-content {
   font-size: 28px;
   font-weight: 600;
+  color: #1A1A1A;
 }
 
-.stats-section .ant-statistic-content-prefix {
-  margin-right: 8px;
-  font-size: 24px;
+/* 关于界面 - 技能卡片 */
+.about-page .preview-skills-card {
+  background: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--spacing-lg);
 }
 
-.stats-section .ant-statistic-content-suffix {
-  font-size: 14px;
-  margin-left: 4px;
-  color: #8C8C8C;
+/* 关于界面 - 轮播图（一次显示四张） */
+.about-page .preview-gallery-card {
+  background: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--spacing-lg);
 }
 
-/* 响应式设计 */
+.gallery-carousel-container {
+  position: relative;
+}
+
+.gallery-carousel-wrapper {
+  width: 100%;
+  max-width: var(--max-content-width); /* 1200px */
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  position: relative;
+  mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+}
+
+.gallery-carousel-track {
+  display: flex;
+  /* 关键理解：
+   * - track宽度由JavaScript动态设置（根据图片数量和组数）
+   * - 例如：3组 × 每组宽度 = 300%wrapper（如果每组100%wrapper）
+   * - 或者：3组 × 每组宽度 = 600%wrapper（如果每组8张，每张25%，每组200%wrapper）
+   * - 宽度通过内联样式动态设置，以适应不同的图片数量
+   */
+  /* width由JavaScript动态设置 */
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  /* 移除CSS动画，使用JavaScript控制 */
+}
+
+.gallery-carousel-item {
+  /* 关键：每张图片占wrapper宽度的25%（一次显示4张） */
+  /* track宽度由JavaScript动态设置，例如3组×8张×25% = 600%wrapper */
+  /* flex-basis的百分比是相对于flex容器的，但由于track宽度已经正确设置， */
+  /* 每张图片使用25%（相对于wrapper）可以正常工作 */
+  flex: 0 0 25%; /* 每张占wrapper的25%（4张显示时）*/
+  width: 25%; /* 每张占wrapper的25% */
+  padding: 0 4px; /* 减小间距，从8px改为4px，避免巨大空隙 */
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.gallery-carousel-item .ant-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.gallery-carousel-item .ant-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery-carousel-item .ant-image:hover {
+  transform: scale(1.03);
+}
+
+/* 关于界面 - 时间线 */
+.about-page .preview-timeline-card {
+  background: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--spacing-lg);
+}
+
+.about-timeline {
+  position: relative;
+  padding-left: var(--spacing-lg);
+}
+
+.about-timeline::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, #2563EB 0%, #10B981 100%);
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-lg);
+}
+
+.timeline-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -26px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #2563EB;
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 0 0 2px #2563EB;
+  z-index: 1;
+}
+
+.timeline-content {
+  margin-left: var(--spacing-md);
+}
+
+.timeline-year {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2563EB;
+  margin-bottom: var(--spacing-xs);
+}
+
+.timeline-event {
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  color: #1A1A1A;
+  margin-bottom: 4px;
+}
+
+.timeline-desc {
+  font-size: var(--font-size-caption);
+  color: #666666;
+  line-height: 1.6;
+}
+
+/* ==================== 响应式设计 ==================== */
 @media (max-width: 768px) {
   .home-container {
-    padding: 16px;
+    padding: var(--spacing-sm);
+  }
+
+  .page-preview.about-page {
+    padding: var(--spacing-sm) !important;
   }
   
-  .intro-card {
-    margin-bottom: 16px;
+  .about-page .preview-intro-card {
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-md);
   }
   
-  .stats-section {
-    margin-top: 16px;
+  .about-page .preview-stats-section {
+    margin-top: var(--spacing-md);
   }
   
-  .stats-section h2 {
-    font-size: 18px;
+  .about-page .preview-stats-section h2 {
+    font-size: var(--font-size-h3);
   }
   
-  .stats-section .ant-statistic-content {
+  .about-page .ant-statistic-content {
     font-size: 24px;
+  }
+
+  /* 手机端轮播图：显示2张 */
+  .gallery-carousel-item {
+    flex: 0 0 50% !important; /* 每组显示2张，每张占50% */
+    width: 50% !important;
+    max-width: 50vw !important;
+  }
+
+  .about-timeline {
+    padding-left: var(--spacing-sm);
+  }
+
+  .timeline-item::before {
+    left: -18px;
   }
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {
   .home-container {
-    padding: 20px;
+    padding: var(--spacing-md); /* 24px - 符合设计文档 */
+  }
+  
+  .page-preview.about-page {
+    padding: var(--spacing-md) !important; /* 24px */
   }
   
   .intro-card {
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-md);
   }
   
   .stats-section {
-    margin-top: 20px;
+    margin-top: var(--spacing-md);
   }
   
   .stats-section .ant-statistic-content {
     font-size: 26px;
   }
+
+  /* 平板端：显示3张 */
+  .gallery-carousel-item {
+    flex: 0 0 33.333% !important; /* 每组显示3张，每张占33.333% */
+    width: 33.333% !important;
+    max-width: calc(100% / 3) !important;
+  }
 }
 
+/* 桌面端轮播图：显示4张（符合设计文档要求） */
 @media (min-width: 1024px) {
   .home-container {
-    padding: 28px;
+    padding: var(--spacing-lg); /* 与基础padding保持一致：32px */
+  }
+  
+  .page-preview.about-page {
+    padding: var(--spacing-lg) !important; /* 32px */
   }
   
   .intro-card {
-    margin-bottom: 24px;
+    margin-bottom: var(--spacing-lg);
   }
   
   .stats-section {
-    margin-top: 24px;
+    margin-top: var(--spacing-lg);
   }
   
   .stats-section .ant-statistic-content {
     font-size: 28px;
   }
+
 }

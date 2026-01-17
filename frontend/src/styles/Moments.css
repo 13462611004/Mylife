@@ -1,71 +1,117 @@
-/* 春夏秋冬页面样式 - 平淡风格 */
+/* ==================== 春夏秋冬页面样式 - 温暖社交风 ==================== */
+/* 设计理念：温暖、亲切、舒适、生活化 */
+/* 视觉风格：柔和、温馨、充满生活气息 */
 
 .moments-container {
-  max-width: 1200px;
+  max-width: var(--max-content-width); /* 统一宽度：1200px */
   margin: 0 auto;
-  padding: var(--spacing-page);
-  background-color: #FAF9F6;
+  padding: var(--spacing-lg); /* 与UIDesignDemo一致：32px */
+  background: transparent; /* 透明，让外层背景显示 */
   min-height: calc(100vh - 64px - 70px);
 }
 
-.moments-content {
-  max-width: 800px;
+/* 页面预览容器 - 与moments-container宽度一致 */
+.page-preview.moments-page {
+  max-width: var(--max-content-width);
   margin: 0 auto;
-  padding: 24px 16px;
+  background: #FEFDFB; /* 柔和的米白色背景 */
+  padding: var(--spacing-lg); /* 与moments-container一致：32px */
+  border-radius: var(--radius-card);
+  min-height: 600px;
+  position: relative;
+}
+
+/* 页面标题样式 */
+.moments-header {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.moments-header h1 {
+  font-size: 32px;
+  font-weight: 600;
+  color: #1A1A1A;
+  margin: 0;
+}
+
+.moments-header .subtitle {
+  font-size: 16px;
+  color: #666666;
+  margin: 0;
+}
+
+.moments-content {
+  max-width: none; /* 移除宽度限制，与UIDesignDemo一致 */
+  margin: 0 auto;
+  padding: var(--spacing-md) 0; /* 只保留上下padding，移除左右padding，让卡片占满宽度 */
 }
 
 .moments-loading {
   text-align: center;
-  padding: 40px;
+  padding: var(--spacing-xl);
 }
 
-.moments-card {
-  background: #FFFFFF;
-  border: none;
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  transition: all 0.3s ease;
-  margin-bottom: var(--spacing-card);
-  overflow: hidden;
-}
-
-.moments-card:hover {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
-}
-
-.moments-card .ant-card-body {
-  padding: 24px;
-}
-
-/* 视图切换器样式 */
+/* ==================== 视图切换器 ==================== */
 .moments-view-switcher {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  margin-bottom: 16px;
-  padding: 0 16px;
+  margin-bottom: var(--spacing-sm);
+  padding: 0 var(--spacing-sm);
 }
 
 .view-switcher-text {
   margin-left: 4px;
 }
 
-/* 时间线视图样式 */
+/* ==================== 卡片样式 ==================== */
+.moments-card {
+  background: var(--moments-bg-secondary); /* #FFFFFF - 纯白 */
+  border: 1px solid #E5E7EB; /* 极浅灰边框 */
+  border-radius: var(--radius-card); /* 10px - 12px */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); /* 极轻的阴影 */
+  transition: all 0.3s ease;
+  margin-bottom: var(--spacing-md);
+  overflow: hidden;
+  position: relative;
+}
+
+.moments-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #E5E7EB, transparent);
+  opacity: 0.5;
+}
+
+.moments-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); /* 更柔和的阴影 */
+  transform: translateY(-1px); /* 极轻微的hover效果 */
+  border-color: #D1D5DB; /* hover时边框变稍微深一点的灰 */
+}
+
+.moments-card .ant-card-body {
+  padding: var(--spacing-md);
+}
+
+/* ==================== 时间线视图样式 ==================== */
 .moments-timeline {
   max-width: 800px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 var(--spacing-sm);
 }
 
 .timeline-date-group {
-  margin-bottom: 32px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .timeline-date-header {
   display: flex;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-md);
   position: relative;
 }
 
@@ -76,28 +122,29 @@
 }
 
 .timeline-date-label {
-  padding: 0 16px;
-  font-size: 16px;
+  padding: 0 var(--spacing-sm);
+  font-size: var(--font-size-body); /* 16px */
   font-weight: 600;
-  color: #595959;
+  color: var(--moments-text-secondary); /* #6B6B6B */
   white-space: nowrap;
+  font-family: var(--font-family);
 }
 
 .timeline-date-weekday {
-  font-size: 14px;
+  font-size: var(--font-size-caption); /* 14px */
   font-weight: 400;
-  color: #8C8C8C;
-  margin-left: 8px;
+  color: var(--moments-text-secondary);
+  margin-left: var(--spacing-xs);
 }
 
 .timeline-posts {
   position: relative;
-  padding-left: 24px;
+  padding-left: var(--spacing-md);
 }
 
 .timeline-post {
   position: relative;
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-md);
 }
 
 .timeline-post-line {
@@ -121,8 +168,8 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #D2B48C;
-  border: 2px solid #FFFFFF;
+  background: #D2B48C; /* 温暖的米色 */
+  border: 2px solid var(--moments-bg-secondary);
   box-shadow: 0 0 0 2px #E8E8E8;
   z-index: 1;
 }
@@ -131,33 +178,44 @@
   margin-left: 0;
 }
 
+/* ==================== 分页 ==================== */
 .moments-pagination {
   display: flex;
   justify-content: center;
-  margin-top: var(--spacing-card);
+  margin-top: var(--spacing-md);
 }
 
-/* 响应式设计 */
+/* ==================== 季节性动画 ==================== */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(5deg);
+  }
+}
+
+/* ==================== 响应式设计 ==================== */
 @media (max-width: 768px) {
   .moments-container {
-    padding: 12px 8px;
+    padding: var(--spacing-sm);
   }
   
   .moments-content {
-    padding: 16px 8px;
+    padding: var(--spacing-sm) var(--spacing-xs);
   }
   
   .moments-card .ant-card-body {
-    padding: 12px;
+    padding: var(--spacing-sm);
   }
 
   .moments-timeline {
-    padding: 0 8px;
+    padding: 0 var(--spacing-xs);
   }
 
   .timeline-date-label {
-    font-size: 14px;
-    padding: 0 12px;
+    font-size: var(--font-size-caption); /* 14px on mobile */
+    padding: 0 var(--spacing-xs);
   }
 
   .timeline-date-weekday {
@@ -166,7 +224,7 @@
   }
 
   .timeline-posts {
-    padding-left: 16px;
+    padding-left: var(--spacing-sm);
   }
 
   .timeline-post-line {
@@ -180,8 +238,8 @@
   }
 
   .moments-view-switcher {
-    padding: 0 8px;
-    margin-bottom: 12px;
+    padding: 0 var(--spacing-xs);
+    margin-bottom: var(--spacing-sm);
   }
 
   .view-switcher-text {
@@ -189,30 +247,30 @@
   }
 
   .moments-view-switcher .ant-btn {
-    padding: 4px 12px;
+    padding: 4px var(--spacing-sm);
   }
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {
   .moments-container {
-    padding: 20px;
+    padding: var(--spacing-md);
   }
   
   .moments-card .ant-card-body {
-    padding: 20px;
+    padding: var(--spacing-md);
   }
 
   .moments-timeline {
-    padding: 0 12px;
+    padding: 0 var(--spacing-sm);
   }
 }
 
 @media (min-width: 1024px) {
   .moments-container {
-    padding: 28px;
+    padding: var(--spacing-xl);
   }
   
   .moments-card .ant-card-body {
-    padding: 24px;
+    padding: var(--spacing-md);
   }
 }

@@ -1,11 +1,60 @@
-/* 管理页面样式 - 综合风格 */
+/* ==================== 管理页面样式 - 极简现代风（参考关于界面） ==================== */
+/* 设计理念：清晰、高效、专业、可靠 */
+/* 视觉风格：极致的简洁、功能优先、数据可视化 */
+/* 参考：关于界面的极简现代风设计 */
 
 .admin-container {
-  max-width: 1400px;
+  max-width: var(--max-content-width); /* 统一宽度：1200px */
   margin: 0 auto;
-  padding: var(--spacing-page);
-  background-color: #FAFAFA;
+  padding: var(--spacing-xl);
+  background-color: transparent; /* 透明，让外层wrapper的背景色显示 */
   min-height: calc(100vh - 64px - 70px);
+}
+
+/* ==================== 主卡片 - 极简风格 ==================== */
+.admin-main-card {
+  background: var(--admin-bg-secondary) !important; /* #FFFFFF - 纯白背景 */
+  border: none !important;
+  border-radius: var(--radius-card); /* 10px - 12px */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); /* 极轻的阴影 */
+  padding: var(--spacing-lg);
+  transition: all 0.3s ease;
+}
+
+.admin-main-card:hover {
+  box-shadow: var(--shadow-hover); /* 0 4px 12px rgba(0, 0, 0, 0.12) */
+}
+
+/* ==================== 管理后台标题区域 ==================== */
+.admin-header {
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid #E5E7EB; /* 极浅灰分隔线 */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-title {
+  margin: 0 !important;
+  font-size: var(--font-size-h2); /* 24px */
+  font-weight: 600; /* 与关于界面一致 */
+  color: var(--admin-text-primary); /* #262626 - 与关于界面一致 */
+  padding-left: var(--spacing-xs); /* 8px */
+  border-left: 3px solid var(--admin-secondary); /* #8C8C8C - 与关于界面一致 */
+  font-family: var(--font-family);
+}
+
+.admin-settings-btn {
+  border-radius: var(--radius-button); /* 6px */
+  height: 36px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.admin-settings-btn:hover {
+  transform: translateY(-2px); /* 与关于界面一致 */
+  box-shadow: var(--shadow-hover); /* 与关于界面一致 */
 }
 
 /* 标签页样式 */
@@ -35,12 +84,12 @@
 }
 
 .admin-tabs .ant-tabs-tab-active {
-  color: #1890FF;
+  color: var(--admin-text-primary); /* #262626 - 深灰色 */
   font-weight: 600;
 }
 
 .admin-tabs .ant-tabs-ink-bar {
-  background-color: #1890FF;
+  background-color: var(--admin-secondary); /* #8C8C8C - 灰色，与关于界面一致 */
   height: 3px;
   border-radius: 2px;
 }
@@ -55,49 +104,110 @@
 }
 
 .admin-stats .ant-card {
-  background: linear-gradient(135deg, #1890FF 0%, #40A9FF 100%);
-  border: none;
+  background: #FFFFFF; /* 纯白背景 - 与关于界面一致 */
+  border: none; /* 无边框 - 与关于界面一致 */
   border-radius: var(--radius-card);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+  box-shadow: var(--shadow-card); /* 与关于界面一致 */
   transition: all 0.3s ease;
   height: 100%;
 }
 
 .admin-stats .ant-card:hover {
-  box-shadow: 0 6px 20px rgba(24, 144, 255, 0.3);
-  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover); /* 与关于界面一致 */
+  transform: translateY(-2px); /* 与关于界面一致 */
 }
 
 .admin-stats .ant-statistic-title {
-  color: rgba(255, 255, 255, 0.9);
+  color: #8C8C8C; /* 与关于界面一致 */
   font-size: 14px;
   margin-bottom: 8px;
+  font-family: var(--font-family-body);
 }
 
 .admin-stats .ant-statistic-content {
-  color: #FFFFFF;
-  font-size: 32px;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 600;
+  font-family: var(--font-family-body);
 }
 
 .admin-stats .ant-statistic-content-prefix {
   margin-right: 8px;
-  font-size: 28px;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 24px;
 }
 
 .admin-stats .ant-statistic-content-suffix {
-  font-size: 16px;
+  font-size: 14px;
   margin-left: 4px;
-  color: rgba(255, 255, 255, 0.8);
+  color: #8C8C8C; /* 与关于界面一致 */
+}
+
+/* ==================== 按钮样式 - 极简风格（与关于界面一致） ==================== */
+.admin-main-card .ant-btn-primary {
+  background-color: var(--admin-primary) !important; /* #1890FF - Ant Design默认蓝 */
+  border-color: var(--admin-primary) !important;
+  border-radius: var(--radius-button); /* 6px - 与关于界面一致 */
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-button); /* 与关于界面一致 */
+}
+
+.admin-main-card .ant-btn-primary:hover {
+  background-color: #40A9FF !important;
+  border-color: #40A9FF !important;
+  transform: translateY(-2px); /* 与关于界面一致 */
+  box-shadow: var(--shadow-hover); /* 与关于界面一致 */
+}
+
+.admin-main-card .ant-btn {
+  border-radius: var(--radius-button); /* 5px */
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.admin-main-card .ant-btn:hover {
+  border-color: var(--about-accent);
+  color: var(--about-accent);
+  transform: translateY(-2px);
+}
+
+/* 表格样式 - 极简风格 */
+.admin-main-card .ant-table {
+  background: #FFFFFF;
+  border-radius: var(--radius-card);
+}
+
+.admin-main-card .ant-table-thead > tr > th {
+  background: var(--table-header-bg) !important; /* #F5F5F5 - 与关于界面表格一致 */
+  border-bottom: 1px solid var(--table-border); /* #F0F0F0 - 与关于界面一致 */
+  color: var(--admin-text-primary); /* #262626 - 与关于界面一致 */
+  font-weight: 600;
+  font-size: var(--table-font-size); /* 14px */
+  padding: var(--spacing-sm);
+  font-family: var(--font-family);
+}
+
+.admin-main-card .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--table-border); /* #F0F0F0 - 与关于界面一致 */
+  padding: var(--spacing-sm);
+  color: var(--admin-text-primary); /* #262626 - 与关于界面一致 */
+  font-size: var(--table-font-size); /* 14px */
+}
+
+.admin-main-card .ant-table-tbody > tr:hover > td {
+  background-color: var(--table-row-hover) !important; /* #FAFAFA - 与关于界面一致 */
+}
+
+.admin-main-card .ant-table-tbody > tr {
+  transition: background-color 0.2s ease;
 }
 
 /* 搜索和筛选区域 */
 .admin-filter {
   background: #FFFFFF;
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); /* 极轻阴影 */
   padding: 20px;
+  border: 1px solid #E5E7EB; /* 细边框 */
   margin-bottom: var(--spacing-card);
 }
 

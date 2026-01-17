@@ -1,21 +1,22 @@
 /* 长路未央页面样式 - 活跃风格 */
 
 /* ==================== 色彩系统 ==================== */
+/* 根据UI_DESIGN_STANDARD.md设计标准 - 长路未央：运动活力风 */
 :root {
-  /* 主色系 - 运动活力色 */
-  --color-primary: #FF6B35;
-  --color-primary-light: #FF8C61;
-  --color-primary-dark: #E55A2B;
+  /* 主色系 - 运动活力色（根据设计标准） */
+  --color-primary: #F59E0B; /* 活力橙 - 主强调色 */
+  --color-primary-light: #FBBF24;
+  --color-primary-dark: #D97706;
 
-  /* 辅助色 - 激情红 */
-  --color-secondary: #B22A2A;
-  --color-secondary-light: #D63031;
-  --color-secondary-dark: #8B211F;
+  /* 辅助色 - 激情红（根据设计标准） */
+  --color-secondary: #EF4444; /* 激情红 - 用于重要数据 */
+  --color-secondary-light: #F87171;
+  --color-secondary-dark: #DC2626;
 
-  /* 强调色 - 活力黄 */
-  --color-accent: #FFC107;
-  --color-accent-light: #FFD54F;
-  --color-accent-dark: #FFA000;
+  /* 强调色 - 能量蓝（根据设计标准） */
+  --color-accent: #3B82F6; /* 能量蓝 - 用于次要元素 */
+  --color-accent-light: #60A5FA;
+  --color-accent-dark: #2563EB;
 
   /* 功能色 */
   --color-success: #52C41A;
@@ -107,14 +108,260 @@
 
 /* ==================== 页面容器 ==================== */
 .marathon-container {
-  max-width: 1400px;
+  max-width: var(--max-content-width); /* 统一宽度：1200px */
   margin: 0 auto;
-  padding: var(--spacing-page);
-  background: var(--gradient-bg-subtle);
+  padding: var(--spacing-lg); /* 与UIDesignDemo一致：32px */
+  background: transparent; /* 透明，让外层背景显示 */
   min-height: calc(100vh - 64px - 70px);
   position: relative;
+  overflow: visible; /* 改为visible，确保背景不被裁剪 */
+}
+
+/* 页面预览容器 - 与marathon-container颜色一致 */
+.page-preview.marathon-page {
+  max-width: var(--max-content-width); /* 统一宽度 */
+  margin: 0 auto;
+  background: #FAFAFA; /* 与marathon-container的视觉效果一致（外层背景色） */
+  padding: var(--spacing-lg); /* 与marathon-container一致：32px */
+  border-radius: var(--radius-card);
+  min-height: 600px;
+  position: relative;
   overflow: hidden;
-  animation: fadeInUp 0.6s var(--ease-out);
+}
+
+/* 微妙的运动感渐变背景 */
+.marathon-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    rgba(245, 158, 11, 0.05) 0%, 
+    rgba(239, 68, 68, 0.05) 50%, 
+    rgba(59, 130, 246, 0.05) 100%
+  );
+  z-index: 0;
+  pointer-events: none;
+}
+
+.marathon-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 页面标题样式 */
+.marathon-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.marathon-header h1 {
+  font-size: var(--font-size-h1);
+  font-weight: 700; /* 更粗的字体 - 力量感 */
+  color: #F59E0B; /* 活力橙 - 主题色 */
+  margin-bottom: var(--spacing-xs);
+  text-shadow: 0 2px 4px rgba(245, 158, 11, 0.2); /* 轻微阴影 - 动感 */
+  font-family: var(--font-family);
+}
+
+.marathon-header .subtitle {
+  font-size: var(--font-size-body);
+  color: #6B7280;
+}
+
+/* ==================== 领奖台展示 ==================== */
+.podium-showcase {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-md) 0;
+}
+
+.podium-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  animation: slideUp 0.6s ease backwards;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.podium-item.first {
+  background: linear-gradient(180deg, #EF4444 0%, #F59E0B 100%);
+  width: 180px;
+  height: 280px;
+  order: 2;
+  animation-delay: 0.2s;
+}
+
+.podium-item.second {
+  background: linear-gradient(180deg, #F59E0B 0%, #FBBF24 100%);
+  width: 160px;
+  height: 240px;
+  order: 1;
+  animation-delay: 0.1s;
+}
+
+.podium-item.third {
+  background: linear-gradient(180deg, #3B82F6 0%, #60A5FA 100%);
+  width: 160px;
+  height: 200px;
+  order: 3;
+  animation-delay: 0.3s;
+}
+
+.podium-item .rank {
+  font-size: 48px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: var(--spacing-sm);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.podium-item .info {
+  text-align: center;
+  color: #FFFFFF;
+}
+
+.podium-item .event-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin-bottom: var(--spacing-xs);
+  line-height: 1.3;
+}
+
+.podium-item .time {
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 6px;
+}
+
+.podium-item .location {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ==================== 赛事列表卡片 ==================== */
+.marathon-list-card {
+  background: #FFFFFF;
+  border: 2px solid #FEF3C7;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.marathon-list-card .ant-card-head {
+  border-bottom: 2px solid #FEF3C7;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: linear-gradient(180deg, #FFFBEB 0%, #FFFFFF 100%);
+}
+
+.marathon-list-card .ant-card-head-title {
+  font-size: var(--font-size-h3);
+  font-weight: 600;
+  color: #1F2937;
+}
+
+.marathon-event-item {
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid #FEF3C7;
+  transition: all 0.3s ease;
+  border-radius: var(--radius-input);
+  margin-bottom: var(--spacing-sm);
+}
+
+.marathon-event-item:hover {
+  background: linear-gradient(90deg, #FFFFFF 0%, #FFFBEB 100%);
+  transform: translateX(8px);
+  box-shadow: var(--shadow-hover);
+}
+
+.marathon-event-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.marathon-event-item .event-main h3 {
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: var(--spacing-sm);
+}
+
+.marathon-event-item .event-meta {
+  display: grid;
+  grid-template-columns: 180px 200px 120px 140px; /* 固定列宽：日期、地点、时间、类型 */
+  gap: 24px;
+  align-items: center;
+  width: 100%;
+}
+
+.marathon-event-item .event-meta .ant-tag {
+  margin: 0 !important;
+  width: 100%; /* 占满列宽 */
+  text-align: center;
+  flex-shrink: 0;
+  padding: 4px 12px;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+/* ==================== 赛事类型筛选器 ==================== */
+.marathon-event-filter {
+  font-family: var(--font-family);
+}
+
+.marathon-event-filter .ant-select-selector {
+  border-radius: 6px !important;
+  border: 1px solid #D9D9D9 !important;
+  transition: all 0.3s ease;
+}
+
+.marathon-event-filter:hover .ant-select-selector {
+  border-color: #F59E0B !important;
+}
+
+.marathon-event-filter.ant-select-focused .ant-select-selector {
+  border-color: #F59E0B !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2) !important;
+}
+
+.marathon-event-filter .ant-select-selection-item {
+  color: #1F2937;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.marathon-event-filter .ant-select-arrow {
+  color: #6B7280;
+}
+
+.marathon-event-filter:hover .ant-select-arrow {
+  color: #F59E0B;
 }
 
 @keyframes fadeInUp {
@@ -128,7 +375,7 @@
   }
 }
 
-/* 动态渐变背景 */
+/* 动态渐变背景 - 使用伪元素作为叠加层 */
 .marathon-container::before {
   content: '';
   position: absolute;
@@ -136,10 +383,13 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(-45deg, #FFF8F5, #FFE5D9, #FFF0E8, #FFFFFF, #FFE5D9);
-  background-size: 500% 500%;
-  animation: gradientBG 20s ease infinite;
-  z-index: -1;
+  background: linear-gradient(135deg, 
+    rgba(245, 158, 11, 0.05) 0%, 
+    rgba(239, 68, 68, 0.05) 50%, 
+    rgba(59, 130, 246, 0.05) 100%
+  );
+  z-index: 0;
+  pointer-events: none;
 }
 
 @keyframes gradientBG {
@@ -163,7 +413,7 @@
 /* 运动轨迹纹理 */
 .marathon-container::after {
   content: '';
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -175,7 +425,7 @@
     radial-gradient(circle at 30% 80%, rgba(255, 107, 53, 0.02) 0%, transparent 40%),
     radial-gradient(circle at 70% 20%, rgba(178, 42, 42, 0.02) 0%, transparent 40%);
   pointer-events: none;
-  z-index: -1;
+  z-index: 0;
   animation: textureMove 30s ease-in-out infinite;
 }
 
@@ -190,10 +440,10 @@
   }
 }
 
-/* 添加运动轨迹线条 */
-.marathon-container {
+/* 确保marathon-container的子元素在背景之上 */
+.marathon-container > * {
   position: relative;
-  overflow: hidden;
+  z-index: 1;
 }
 
 .marathon-container .motion-trail {

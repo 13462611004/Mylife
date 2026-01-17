@@ -1,0 +1,15 @@
+bindPort = 7000
+
+# HTTP 虚拟主机端口（标准端口）
+vhostHTTPPort = 80
+
+# HTTPS 虚拟主机端口（标准端口）
+vhostHTTPSPort = 443
+
+# Token 认证
+auth.token = "mylife2024"
+
+# 日志配置
+log.to = "/opt/frp/frps.log"
+log.level = "info"
+log.maxDays = 3

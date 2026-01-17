@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, Form, Input, DatePicker, Select, Upload, Modal, message, Space, Row, Col, Tabs, Tag, Checkbox, Popconfirm } from 'antd';
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, Table, Button, Form, Input, DatePicker, Select, Upload, Modal, message, Space, Row, Col, Tabs, Tag, Checkbox, Popconfirm, Slider } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, EyeOutlined, LockOutlined, SettingOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../services/axios';
@@ -50,6 +50,23 @@ const Admin: React.FC = () => {
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [passwordForm] = Form.useForm();
   const [passwordLoading, setPasswordLoading] = useState(false);
+  // 媒体资源管理相关状态
+  const [adminSettings, setAdminSettings] = useState<AdminSetting | null>(null);
+  const [carouselLoading, setCarouselLoading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  // 图片裁剪相关状态
+  const [cropModalVisible, setCropModalVisible] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string>('');
+  const [cropImageFile, setCropImageFile] = useState<File | null>(null);
+  const [cropArea, setCropArea] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [imageScale, setImageScale] = useState(1);
+  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const imageRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const isAdmin = localStorage.getItem('isAdmin');
@@ -58,11 +75,30 @@ const Admin: React.FC = () => {
       navigate('/admin/login');
       return;
     }
-    fetchMarathons();
-    fetchRegistrations();
-    fetchPosts();
-    fetchPostStats();
-    fetchProvinces();
+    // 先验证session是否有效，再加载数据
+    const loadData = async () => {
+      try {
+        // 先尝试获取管理员设置来验证session
+        await fetchAdminSettings();
+        // 如果成功，再加载其他数据
+        fetchMarathons();
+        fetchRegistrations();
+        fetchPosts();
+        fetchPostStats();
+        fetchProvinces();
+      } catch (error: any) {
+        // fetchAdminSettings内部已经处理了401错误并跳转
+        // 如果是其他错误，继续加载其他数据
+        if (error.response?.status !== 401) {
+          fetchMarathons();
+          fetchRegistrations();
+          fetchPosts();
+          fetchPostStats();
+          fetchProvinces();
+        }
+      }
+    };
+    loadData();
   }, []);
 
   const fetchProvinces = async () => {
@@ -767,6 +803,392 @@ const Admin: React.FC = () => {
     },
   ];
 
+  // ========== 媒体资源管理功能 ==========
+  const fetchAdminSettings = async () => {
+    try {
+      const response = await apiClient.get('/api/admin/settings/');
+      setAdminSettings(response);
+    } catch (error: any) {
+      console.error('获取管理员设置失败:', error);
+      // 如果是401错误，说明session过期，需要重新登录
+      if (error.response?.status === 401) {
+        message.warning('登录已过期，请重新登录');
+        localStorage.removeItem('isAdmin');
+        navigate('/admin/login');
+      }
+    }
+  };
+
+  // 打开裁剪模态框
+  const openCropModal = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageUrl = e.target?.result as string;
+      setCropImageSrc(imageUrl);
+      setCropImageFile(file);
+      setCropModalVisible(true);
+      // 默认裁剪区域为图片中心，宽高比为4:3（轮播图常用比例）
+      setTimeout(() => {
+        if (imageRef.current && containerRef.current) {
+          const img = imageRef.current;
+          const container = containerRef.current;
+          const containerWidth = container.clientWidth;
+          const containerHeight = container.clientHeight;
+          const imgAspectRatio = img.naturalWidth / img.naturalHeight;
+          const cropAspectRatio = 4 / 3; // 轮播图比例
+          
+          let cropWidth = Math.min(containerWidth * 0.8, img.naturalWidth * imageScale);
+          let cropHeight = cropWidth / cropAspectRatio;
+          
+          if (cropHeight > Math.min(containerHeight * 0.8, img.naturalHeight * imageScale)) {
+            cropHeight = Math.min(containerHeight * 0.8, img.naturalHeight * imageScale);
+            cropWidth = cropHeight * cropAspectRatio;
+          }
+          
+          setCropArea({
+            x: (containerWidth - cropWidth) / 2,
+            y: (containerHeight - cropHeight) / 2,
+            width: cropWidth,
+            height: cropHeight
+          });
+        }
+      }, 100);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 处理图片上传前的事件（打开裁剪框）
+  const handleBeforeUploadCarousel = (file: File) => {
+    openCropModal(file);
+    return false; // 阻止自动上传
+  };
+
+  // 裁剪图片并上传
+  const handleCropAndUpload = async () => {
+    if (!cropImageFile || !imageRef.current || !containerRef.current) {
+      message.error('缺少必要的信息，请重新上传图片');
+      return;
+    }
+
+    setCarouselLoading(true);
+    try {
+      const img = imageRef.current;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        message.error('无法创建画布');
+        setCarouselLoading(false);
+        return;
+      }
+
+      // 验证图片是否已加载完成
+      if (!img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
+        message.error('图片尚未加载完成，请稍候再试');
+        setCarouselLoading(false);
+        return;
+      }
+
+      // 验证裁剪区域是否有效
+      if (cropArea.width <= 0 || cropArea.height <= 0) {
+        console.error('裁剪区域无效:', cropArea);
+        message.error('裁剪区域无效，请重新选择区域');
+        setCarouselLoading(false);
+        return;
+      }
+
+      // 计算实际裁剪区域（相对于原图）
+      // 注意：使用imageSize（已缩放的显示尺寸）来计算比例
+      const displayWidth = imageSize.width > 0 ? imageSize.width : (img.width || img.clientWidth);
+      const displayHeight = imageSize.height > 0 ? imageSize.height : (img.height || img.clientHeight);
+      
+      if (displayWidth <= 0 || displayHeight <= 0) {
+        console.error('显示尺寸无效:', { displayWidth, displayHeight, imageSize, imgWidth: img.width, imgHeight: img.height });
+        message.error('图片尺寸无效，请重新上传');
+        setCarouselLoading(false);
+        return;
+      }
+      
+      const scaleX = img.naturalWidth / displayWidth;
+      const scaleY = img.naturalHeight / displayHeight;
+      
+      // 调整裁剪区域坐标（考虑图片在容器中的位置）
+      const relativeX = Math.max(0, (cropArea.x - imagePosition.x) * scaleX);
+      const relativeY = Math.max(0, (cropArea.y - imagePosition.y) * scaleY);
+      const relativeWidth = Math.min(cropArea.width * scaleX, img.naturalWidth - relativeX);
+      const relativeHeight = Math.min(cropArea.height * scaleY, img.naturalHeight - relativeY);
+
+      // 验证裁剪区域是否在图片范围内
+      if (relativeWidth <= 0 || relativeHeight <= 0 || relativeX >= img.naturalWidth || relativeY >= img.naturalHeight) {
+        console.error('裁剪区域超出范围:', {
+          relativeX, relativeY, relativeWidth, relativeHeight,
+          naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight
+        });
+        message.error('裁剪区域超出图片范围，请重新选择');
+        setCarouselLoading(false);
+        return;
+      }
+
+      // 设置画布尺寸为裁剪区域
+      canvas.width = relativeWidth;
+      canvas.height = relativeHeight;
+
+      // 绘制裁剪后的图片
+      ctx.drawImage(
+        img,
+        relativeX, relativeY, relativeWidth, relativeHeight,
+        0, 0, relativeWidth, relativeHeight
+      );
+
+      // 将画布转换为Blob
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          message.error('裁剪失败');
+          setCarouselLoading(false);
+          return;
+        }
+
+        // 验证blob是否有效
+        if (blob.size === 0) {
+          message.error('裁剪后的图片为空');
+          setCarouselLoading(false);
+          return;
+        }
+
+        // 创建File对象
+        const croppedFile = new File([blob], cropImageFile.name || 'carousel.jpg', { 
+          type: cropImageFile.type || 'image/jpeg' 
+        });
+
+        // 验证文件对象
+        if (!croppedFile || croppedFile.size === 0) {
+          message.error('文件对象无效');
+          setCarouselLoading(false);
+          return;
+        }
+
+        // 上传裁剪后的图片和原始图片
+        const formData = new FormData();
+        formData.append('image', croppedFile);
+        // 同时上传原始图片，用于预览时显示完整图片
+        if (cropImageFile) {
+          formData.append('original', cropImageFile);
+        }
+        
+        // 验证FormData
+        if (!formData.has('image')) {
+          message.error('FormData添加文件失败');
+          setCarouselLoading(false);
+          return;
+        }
+        
+        // 验证FormData和文件
+        console.log('准备上传文件:', {
+          fileName: croppedFile.name,
+          fileSize: croppedFile.size,
+          fileType: croppedFile.type,
+          formDataHasImage: formData.has('image'),
+          formDataHasOriginal: formData.has('original')
+        });
+        
+        // 注意：不要手动设置 Content-Type，让浏览器自动设置（包含boundary）
+        // 这样session cookie才能正确传递
+        try {
+          const response = await apiClient.post('/api/admin/upload-carousel/', formData, {
+            headers: {
+              // 不设置Content-Type，让浏览器自动设置multipart/form-data; boundary=...
+            },
+          });
+          
+          message.success('轮播图上传成功');
+          setCropModalVisible(false);
+          setCropImageSrc('');
+          setCropImageFile(null);
+          await fetchAdminSettings();
+          setCarouselLoading(false);
+        } catch (uploadError: any) {
+          console.error('上传请求错误:', uploadError);
+          console.error('错误响应:', uploadError.response?.data);
+          const errorMsg = uploadError.response?.data?.error || uploadError.response?.data?.message || uploadError.message || '未知错误';
+          message.error(`上传失败: ${errorMsg}`);
+          setCarouselLoading(false);
+          throw uploadError; // 重新抛出以便外层catch捕获
+        }
+      }, cropImageFile.type, 0.95);
+    } catch (error: any) {
+      console.error('裁剪上传过程错误:', error);
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || '未知错误';
+      message.error(`上传失败: ${errorMsg}`);
+      setCarouselLoading(false);
+    }
+  };
+
+  // 处理图片加载完成
+  const handleImageLoad = () => {
+    if (imageRef.current && containerRef.current) {
+      const img = imageRef.current;
+      const container = containerRef.current;
+      const imgNaturalWidth = img.naturalWidth;
+      const imgNaturalHeight = img.naturalHeight;
+      const imgAspectRatio = imgNaturalWidth / imgNaturalHeight;
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+      const containerAspectRatio = containerWidth / containerHeight;
+      
+      // 计算初始缩放比例，使图片完全显示在容器中
+      let initialScale = 1;
+      if (imgAspectRatio > containerAspectRatio) {
+        // 图片更宽，以宽度为准
+        initialScale = containerWidth / imgNaturalWidth;
+      } else {
+        // 图片更高，以高度为准
+        initialScale = containerHeight / imgNaturalHeight;
+      }
+      
+      setImageScale(initialScale);
+      
+      const scaledWidth = imgNaturalWidth * initialScale;
+      const scaledHeight = imgNaturalHeight * initialScale;
+      
+      // 存储图片尺寸
+      setImageSize({ width: scaledWidth, height: scaledHeight });
+      
+      // 居中图片
+      setImagePosition({
+        x: (containerWidth - scaledWidth) / 2,
+        y: (containerHeight - scaledHeight) / 2
+      });
+
+      // 初始化裁剪区域（4:3比例）
+      const cropAspectRatio = 4 / 3;
+      const cropWidth = Math.min(containerWidth * 0.8, scaledWidth);
+      const cropHeight = cropWidth / cropAspectRatio;
+      
+      if (cropHeight > containerHeight * 0.8) {
+        const adjustedCropHeight = containerHeight * 0.8;
+        const adjustedCropWidth = adjustedCropHeight * cropAspectRatio;
+        setCropArea({
+          x: (containerWidth - adjustedCropWidth) / 2,
+          y: (containerHeight - adjustedCropHeight) / 2,
+          width: adjustedCropWidth,
+          height: adjustedCropHeight
+        });
+      } else {
+        setCropArea({
+          x: (containerWidth - cropWidth) / 2,
+          y: (containerHeight - cropHeight) / 2,
+          width: cropWidth,
+          height: cropHeight
+        });
+      }
+    }
+  };
+
+  // 处理鼠标拖动（区分拖动裁剪框和拖动图片）
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!containerRef.current || !imageRef.current) return;
+    
+    const target = e.target as HTMLElement;
+    const container = containerRef.current;
+    const img = imageRef.current;
+    
+    // 检查点击的是图片还是裁剪框
+    if (target === img || img.contains(target)) {
+      // 点击的是图片，拖动图片
+      e.stopPropagation();
+      setIsDraggingImage(true);
+      setDragStart({ 
+        x: e.clientX - imagePosition.x, 
+        y: e.clientY - imagePosition.y 
+      });
+    } else {
+      // 点击的是裁剪框区域，拖动裁剪框
+      setIsDragging(true);
+      setDragStart({ 
+        x: e.clientX - cropArea.x, 
+        y: e.clientY - cropArea.y 
+      });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!containerRef.current || !imageRef.current) return;
+    const container = containerRef.current;
+    const img = imageRef.current;
+    
+    if (isDraggingImage) {
+      // 拖动图片
+      const newX = e.clientX - dragStart.x;
+      const newY = e.clientY - dragStart.y;
+      
+      // 限制图片不能移出容器太远（允许部分移出，但不能完全移出）
+      const maxX = container.clientWidth - imageSize.width;
+      const minX = 0;
+      const maxY = container.clientHeight - imageSize.height;
+      const minY = 0;
+      
+      setImagePosition({
+        x: Math.max(minX, Math.min(newX, maxX)),
+        y: Math.max(minY, Math.min(newY, maxY))
+      });
+    } else if (isDragging) {
+      // 拖动裁剪框
+      const newX = Math.max(0, Math.min(e.clientX - dragStart.x, container.clientWidth - cropArea.width));
+      const newY = Math.max(0, Math.min(e.clientY - dragStart.y, container.clientHeight - cropArea.height));
+      setCropArea(prev => ({ ...prev, x: newX, y: newY }));
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setIsDraggingImage(false);
+  };
+
+  const handleDeleteCarousel = async (index: number) => {
+    if (!adminSettings) return;
+    
+    const carouselImages = adminSettings.carousel_images || [];
+    if (Array.isArray(carouselImages)) {
+      // 创建新数组，避免直接修改原数组
+      const newCarouselImages = [...carouselImages];
+      newCarouselImages.splice(index, 1);
+      
+      try {
+        const response = await apiClient.put('/api/admin/settings/', {
+          carousel_images: newCarouselImages,
+        });
+        message.success('删除成功');
+        // 更新本地状态
+        setAdminSettings(response);
+        // 同时重新获取以确保数据同步
+        await fetchAdminSettings();
+      } catch (error: any) {
+        console.error('删除轮播图错误:', error);
+        const errorMsg = error.response?.data?.error || error.message || '未知错误';
+        message.error(`删除失败: ${errorMsg}`);
+      }
+    }
+  };
+
+  const handleUploadAvatar = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      
+      await apiClient.put('/api/admin/settings/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      message.success('头像上传成功');
+      await fetchAdminSettings();
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.error || error.message || '未知错误';
+      message.error(`上传失败: ${errorMsg}`);
+    }
+  };
+
   // ========== 修改密码功能 ==========
   const handleChangePassword = async (values: { oldPassword: string; newPassword: string; confirmPassword: string }) => {
     if (values.newPassword !== values.confirmPassword) {
@@ -888,15 +1310,23 @@ const Admin: React.FC = () => {
   return (
     <div className="admin-container">
       <Navigation />
-      <Card>
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0 }}>管理后台</h2>
-            <Button 
-              icon={<SettingOutlined />} 
-              onClick={() => setPasswordModalVisible(true)}
-            >
-              修改密码
-            </Button>
+      <Card className="admin-main-card">
+        <div className="admin-header">
+                  <h2 className="admin-title" style={{ 
+                    fontSize: 20,
+                    fontWeight: 500,
+                    color: 'var(--about-accent)',
+                    paddingLeft: 8,
+                    borderLeft: '3px solid var(--about-secondary)',
+                    margin: 0
+                  }}>管理后台</h2>
+          <Button 
+            icon={<SettingOutlined />} 
+            onClick={() => setPasswordModalVisible(true)}
+            className="admin-settings-btn"
+          >
+            修改密码
+          </Button>
         </div>
         <Tabs defaultActiveKey="1">
           <Tabs.TabPane tab="马拉松赛事" key="1">
@@ -1012,6 +1442,100 @@ const Admin: React.FC = () => {
                 showQuickJumper: true,
               }}
             />
+          </Tabs.TabPane>
+          <Tabs.TabPane tab="媒体资源管理" key="4">
+            <Row gutter={[24, 24]}>
+              {/* 轮播图管理 */}
+              <Col span={24}>
+                <Card title="首页轮播图管理" style={{ marginBottom: 24 }}>
+                  <div style={{ marginBottom: 16 }}>
+                    <Upload
+                      accept="image/*"
+                      beforeUpload={handleBeforeUploadCarousel}
+                      showUploadList={false}
+                    >
+                      <Button icon={<UploadOutlined />} loading={carouselLoading} type="primary">
+                        上传轮播图
+                      </Button>
+                    </Upload>
+                  </div>
+                  {adminSettings?.carousel_images && Array.isArray(adminSettings.carousel_images) && adminSettings.carousel_images.length > 0 ? (
+                    <Row gutter={[16, 16]}>
+                      {adminSettings.carousel_images.map((item: any, index: number) => {
+                        const imageUrl = typeof item === 'string' ? item : item.url || item;
+                        return (
+                          <Col span={6} key={index}>
+                            <Card
+                              hoverable
+                              cover={
+                                <img
+                                  alt={typeof item === 'object' && item.alt ? item.alt : `轮播图${index + 1}`}
+                                  src={imageUrl}
+                                  style={{ height: 150, objectFit: 'cover' }}
+                                />
+                              }
+                              actions={[
+                                <Popconfirm
+                                  key="delete"
+                                  title="确定删除这张轮播图吗？"
+                                  onConfirm={() => handleDeleteCarousel(index)}
+                                  okText="确定"
+                                  cancelText="取消"
+                                >
+                                  <Button type="text" danger icon={<DeleteOutlined />}>
+                                    删除
+                                  </Button>
+                                </Popconfirm>,
+                              ]}
+                            >
+                              <Card.Meta
+                                title={`轮播图 ${index + 1}`}
+                                description={typeof item === 'object' && item.alt ? item.alt : '轮播图'}
+                              />
+                            </Card>
+                          </Col>
+                        );
+                      })}
+                    </Row>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
+                      暂无轮播图，请上传
+                    </div>
+                  )}
+                </Card>
+              </Col>
+
+              {/* 头像管理 */}
+              <Col span={24}>
+                <Card title="用户头像管理">
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <div>
+                      <Upload
+                        accept="image/*"
+                        beforeUpload={(file) => {
+                          handleUploadAvatar(file);
+                          return false; // 阻止自动上传
+                        }}
+                        showUploadList={false}
+                      >
+                        <Button icon={<UploadOutlined />} type="primary">
+                          上传头像
+                        </Button>
+                      </Upload>
+                    </div>
+                    {adminSettings?.avatar && (
+                      <div>
+                        <img
+                          src={adminSettings.avatar}
+                          alt="用户头像"
+                          style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '2px solid #E5E7EB' }}
+                        />
+                      </div>
+                    )}
+                  </Space>
+                </Card>
+              </Col>
+            </Row>
           </Tabs.TabPane>
         </Tabs>
       </Card>
@@ -1145,6 +1669,332 @@ const Admin: React.FC = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 图片裁剪模态框 */}
+      <Modal
+        title="裁剪轮播图"
+        open={cropModalVisible}
+        onCancel={() => {
+          setCropModalVisible(false);
+          setCropImageSrc('');
+          setCropImageFile(null);
+        }}
+        onOk={handleCropAndUpload}
+        okText="确认上传"
+        cancelText="取消"
+        width={800}
+        confirmLoading={carouselLoading}
+        maskClosable={false}
+      >
+        <div
+          ref={containerRef}
+          style={{
+            width: '100%',
+            height: '500px',
+            position: 'relative',
+            overflow: 'hidden',
+            backgroundColor: '#f5f5f5',
+            borderRadius: 8,
+            border: '1px solid #d9d9d9',
+            cursor: isDragging || isDraggingImage ? 'grabbing' : 'default',
+            touchAction: 'none'
+          }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
+          {cropImageSrc && (
+            <img
+              ref={imageRef}
+              src={cropImageSrc}
+              alt="裁剪预览"
+              onLoad={handleImageLoad}
+              style={{
+                position: 'absolute',
+                top: `${imagePosition.y}px`,
+                left: `${imagePosition.x}px`,
+                width: `${imageSize.width}px`,
+                height: `${imageSize.height}px`,
+                maxWidth: 'none',
+                maxHeight: 'none',
+                userSelect: 'none',
+                cursor: isDraggingImage ? 'grabbing' : 'grab',
+                pointerEvents: 'auto' // 允许图片接收鼠标事件
+              }}
+            />
+          )}
+          {/* 裁剪框 */}
+          <div
+            style={{
+              position: 'absolute',
+              left: `${cropArea.x}px`,
+              top: `${cropArea.y}px`,
+              width: `${cropArea.width}px`,
+              height: `${cropArea.height}px`,
+              border: '2px solid #1890ff',
+              boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+              cursor: isDragging ? 'grabbing' : 'move',
+              zIndex: 10
+            }}
+          >
+            {/* 裁剪框四个角的控制点 */}
+            <div
+              style={{
+                position: 'absolute',
+                top: -4,
+                left: -4,
+                width: 8,
+                height: 8,
+                border: '2px solid #1890ff',
+                backgroundColor: '#fff',
+                borderRadius: '50%',
+                cursor: 'nw-resize'
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                width: 8,
+                height: 8,
+                border: '2px solid #1890ff',
+                backgroundColor: '#fff',
+                borderRadius: '50%',
+                cursor: 'ne-resize'
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                bottom: -4,
+                left: -4,
+                width: 8,
+                height: 8,
+                border: '2px solid #1890ff',
+                backgroundColor: '#fff',
+                borderRadius: '50%',
+                cursor: 'sw-resize'
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                bottom: -4,
+                right: -4,
+                width: 8,
+                height: 8,
+                border: '2px solid #1890ff',
+                backgroundColor: '#fff',
+                borderRadius: '50%',
+                cursor: 'se-resize'
+              }}
+            />
+          </div>
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <Space direction="vertical" style={{ width: '100%' }} size="large">
+            <div>
+              <div style={{ marginBottom: 8 }}>
+                <span>缩放：</span>
+                <Slider
+                  min={0.1}
+                  max={2}
+                  step={0.01}
+                  value={imageScale}
+                  onChange={(value) => {
+                    if (imageRef.current && containerRef.current) {
+                      const newScale = value;
+                      const img = imageRef.current;
+                      const container = containerRef.current;
+                      const centerX = container.clientWidth / 2;
+                      const centerY = container.clientHeight / 2;
+                      
+                      // 计算新的图片尺寸
+                      const newWidth = img.naturalWidth * newScale;
+                      const newHeight = img.naturalHeight * newScale;
+                      setImageSize({ width: newWidth, height: newHeight });
+                      
+                      // 以中心点缩放
+                      const scaleDiff = newScale / imageScale;
+                      const newX = centerX - (centerX - imagePosition.x) * scaleDiff;
+                      const newY = centerY - (centerY - imagePosition.y) * scaleDiff;
+                      
+                      setImageScale(newScale);
+                      setImagePosition({ x: newX, y: newY });
+                    }
+                  }}
+                  style={{ width: '200px', display: 'inline-block', marginLeft: 16 }}
+                />
+                <Button 
+                  size="small" 
+                  onClick={() => {
+                    if (imageRef.current && containerRef.current) {
+                      const img = imageRef.current;
+                      const container = containerRef.current;
+                      const containerWidth = container.clientWidth;
+                      const containerHeight = container.clientHeight;
+                      const imgAspectRatio = img.naturalWidth / img.naturalHeight;
+                      const containerAspectRatio = containerWidth / containerHeight;
+                      
+                      let initialScale = 1;
+                      if (imgAspectRatio > containerAspectRatio) {
+                        initialScale = containerWidth / img.naturalWidth;
+                      } else {
+                        initialScale = containerHeight / img.naturalHeight;
+                      }
+                      
+                      setImageScale(initialScale);
+                      const scaledWidth = img.naturalWidth * initialScale;
+                      const scaledHeight = img.naturalHeight * initialScale;
+                      setImageSize({ width: scaledWidth, height: scaledHeight });
+                      setImagePosition({
+                        x: (containerWidth - scaledWidth) / 2,
+                        y: (containerHeight - scaledHeight) / 2
+                      });
+                    }
+                  }}
+                  style={{ marginLeft: 8 }}
+                >
+                  重置
+                </Button>
+              </div>
+            </div>
+            <div>
+              <div style={{ marginBottom: 8 }}>
+                <span>水平位置：</span>
+                <Slider
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={(() => {
+                    if (!containerRef.current || imageSize.width === 0) return 50;
+                    const container = containerRef.current;
+                    const containerWidth = container.clientWidth;
+                    const imageWidth = imageSize.width;
+                    
+                    // 计算可移动范围
+                    // 如果图片比容器大，允许负值（图片可以向左移出容器）
+                    const minX = Math.min(0, containerWidth - imageWidth);
+                    const maxX = Math.max(0, containerWidth - imageWidth);
+                    const range = maxX - minX;
+                    
+                    if (range <= 0) return 50; // 如果无法移动，返回中间值
+                    
+                    // 将当前位置映射到0-100
+                    const normalizedX = imagePosition.x - minX;
+                    return (normalizedX / range) * 100;
+                  })()}
+                  onChange={(value) => {
+                    if (containerRef.current && imageSize.width > 0) {
+                      const container = containerRef.current;
+                      const containerWidth = container.clientWidth;
+                      const imageWidth = imageSize.width;
+                      
+                      // 计算可移动范围
+                      const minX = Math.min(0, containerWidth - imageWidth);
+                      const maxX = Math.max(0, containerWidth - imageWidth);
+                      const range = maxX - minX;
+                      
+                      if (range > 0) {
+                        // 将滑块值(0-100)映射到实际位置
+                        const newX = minX + (value / 100) * range;
+                        setImagePosition(prev => ({ ...prev, x: newX }));
+                      }
+                    }
+                  }}
+                  style={{ width: '200px', display: 'inline-block', marginLeft: 16 }}
+                />
+                <Button 
+                  size="small" 
+                  onClick={() => {
+                    if (containerRef.current && imageSize.width > 0) {
+                      const container = containerRef.current;
+                      const containerWidth = container.clientWidth;
+                      const imageWidth = imageSize.width;
+                      const minX = Math.min(0, containerWidth - imageWidth);
+                      const maxX = Math.max(0, containerWidth - imageWidth);
+                      const centerX = (minX + maxX) / 2;
+                      setImagePosition(prev => ({ ...prev, x: centerX }));
+                    }
+                  }}
+                  style={{ marginLeft: 8 }}
+                >
+                  居中
+                </Button>
+              </div>
+            </div>
+            <div>
+              <div style={{ marginBottom: 8 }}>
+                <span>垂直位置：</span>
+                <Slider
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={(() => {
+                    if (!containerRef.current || imageSize.height === 0) return 50;
+                    const container = containerRef.current;
+                    const containerHeight = container.clientHeight;
+                    const imageHeight = imageSize.height;
+                    
+                    // 计算可移动范围
+                    // 如果图片比容器大，允许负值（图片可以向上移出容器）
+                    const minY = Math.min(0, containerHeight - imageHeight);
+                    const maxY = Math.max(0, containerHeight - imageHeight);
+                    const range = maxY - minY;
+                    
+                    if (range <= 0) return 50; // 如果无法移动，返回中间值
+                    
+                    // 将当前位置映射到0-100
+                    const normalizedY = imagePosition.y - minY;
+                    return (normalizedY / range) * 100;
+                  })()}
+                  onChange={(value) => {
+                    if (containerRef.current && imageSize.height > 0) {
+                      const container = containerRef.current;
+                      const containerHeight = container.clientHeight;
+                      const imageHeight = imageSize.height;
+                      
+                      // 计算可移动范围
+                      const minY = Math.min(0, containerHeight - imageHeight);
+                      const maxY = Math.max(0, containerHeight - imageHeight);
+                      const range = maxY - minY;
+                      
+                      if (range > 0) {
+                        // 将滑块值(0-100)映射到实际位置
+                        const newY = minY + (value / 100) * range;
+                        setImagePosition(prev => ({ ...prev, y: newY }));
+                      }
+                    }
+                  }}
+                  style={{ width: '200px', display: 'inline-block', marginLeft: 16 }}
+                />
+                <Button 
+                  size="small" 
+                  onClick={() => {
+                    if (containerRef.current && imageSize.height > 0) {
+                      const container = containerRef.current;
+                      const containerHeight = container.clientHeight;
+                      const imageHeight = imageSize.height;
+                      const minY = Math.min(0, containerHeight - imageHeight);
+                      const maxY = Math.max(0, containerHeight - imageHeight);
+                      const centerY = (minY + maxY) / 2;
+                      setImagePosition(prev => ({ ...prev, y: centerY }));
+                    }
+                  }}
+                  style={{ marginLeft: 8 }}
+                >
+                  居中
+                </Button>
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: '#666' }}>
+              提示：使用滑块调整图片缩放和位置，拖拽裁剪框移动裁剪区域。裁剪区域是轮播图中显示的部分。
+            </div>
+          </Space>
+        </div>
       </Modal>
 
       {/* 马拉松赛事编辑/添加模态框 */}

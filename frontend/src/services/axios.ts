@@ -20,11 +20,16 @@ const getBaseURL = (): string => {
   const currentHost = window.location.hostname;
   const currentPort = window.location.port;
   
-  // 如果是域名访问，优先尝试使用 API 子域名，如果失败则使用主域名
+  // 如果是域名访问，使用主域名（通过前端代理或服务器端路由转发到后端）
   if (currentHost === 'xiaomanxia.com' || currentHost === 'www.xiaomanxia.com') {
-    // 暂时使用主域名作为 API 地址（直到 api.xiaomanxia.com DNS 配置完成）
-    // 配置 DNS 后可以改为: return 'https://api.xiaomanxia.com';
+    // 使用主域名，React 开发服务器的 setupProxy.js 会将 /api/ 路径代理到后端
+    // 生产环境构建后，需要通过服务器端（FRP 或 Nginx）配置 /api/ 路径转发到后端
     return 'https://xiaomanxia.com';
+  }
+  
+  // 如果直接通过 api.xiaomanxia.com 访问，使用子域名
+  if (currentHost === 'api.xiaomanxia.com') {
+    return 'https://api.xiaomanxia.com';
   }
   
   // 如果是公网IP，使用公网IP的8000端口
@@ -43,7 +48,8 @@ const getBaseURL = (): string => {
   }
   
   // 默认使用 localhost（本地开发）
-  return 'http://localhost:8000';
+  // 测试环境使用8001端口，避免与主项目冲突
+  return 'http://localhost:8001';
 };
 
 // 创建Axios实例
@@ -59,6 +65,12 @@ const apiClient: CustomAxiosInstance = axios.create({
 // 请求拦截器
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
+    // 如果是FormData，删除Content-Type让浏览器自动设置（包含boundary）
+    if (config.data instanceof FormData) {
+      if (config.headers) {
+        delete config.headers['Content-Type'];
+      }
+    }
     // 可以在这里添加认证信息，比如token
     // const token = localStorage.getItem('token');
     // if (token && config.headers) {

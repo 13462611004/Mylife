@@ -13,6 +13,13 @@
   background-color: transparent;
 }
 
+/* Admin页面全屏背景 - 覆盖app-layout的白色背景 */
+.app-layout:has(.admin-container),
+.app-content:has(.admin-container) {
+  background-color: var(--admin-background) !important; /* #FAF9F6 - 极浅米白 */
+  min-height: 100vh;
+}
+
 .app-footer {
   text-align: center;
   padding: 24px;

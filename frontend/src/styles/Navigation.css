@@ -1,36 +1,39 @@
-/* 导航栏样式 */
+/* 导航栏样式 - 融入页面，不突兀 */
 
-.ant-menu-horizontal {
-  background: #FFFFFF;
-  border-bottom: 1px solid #F0F0F0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  padding: 0 24px;
-  height: 64px;
-  line-height: 64px;
+.navigation-menu.ant-menu-horizontal {
+  background: transparent !important; /* 透明背景，融入页面 */
+  border-bottom: none !important; /* 移除底部边框 */
+  box-shadow: none !important; /* 移除阴影 */
+  padding: 0 !important;
+  height: auto !important;
+  line-height: normal !important;
+  margin-bottom: 32px !important; /* 增加与内容的间距 */
 }
 
-.ant-menu-item {
+.navigation-menu .ant-menu-item {
   font-size: 15px;
   font-weight: 500;
-  color: #595959;
-  margin: 0 8px;
-  padding: 0 16px;
-  height: 64px;
-  line-height: 64px;
-  border-radius: 4px;
+  color: #6B7280; /* 使用更柔和的灰色 */
+  margin: 0 12px !important;
+  padding: 8px 16px !important;
+  height: auto !important;
+  line-height: 1.5 !important;
+  border-radius: 6px !important; /* 符合设计标准 */
   transition: all 0.2s ease;
+  background: transparent !important;
 }
 
-.ant-menu-item:hover {
-  color: #1890FF;
-  background: #F0F9FF;
-  transform: translateY(-1px);
+.navigation-menu .ant-menu-item:hover {
+  color: #1F2937 !important; /* 悬停时变深 */
+  background: rgba(0, 0, 0, 0.04) !important; /* 非常淡的背景 */
+  transform: none; /* 移除上移效果 */
 }
 
-.ant-menu-item-selected {
-  color: #1890FF;
-  background: #E6F7FF;
+.navigation-menu .ant-menu-item-selected {
+  color: #1F2937 !important; /* 选中时深色 */
+  background: rgba(0, 0, 0, 0.06) !important; /* 非常淡的选中背景 */
   font-weight: 600;
+  border-bottom: none !important;
 }
 
 .ant-menu-item-icon {
@@ -40,27 +43,28 @@
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .ant-menu-horizontal {
-    padding: 0 8px;
-    height: 48px;
-    line-height: 48px;
+  .navigation-menu.ant-menu-horizontal {
+    padding: 0 !important;
+    height: auto !important;
+    line-height: normal !important;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    margin-bottom: 24px !important;
   }
 
-  .ant-menu-horizontal::-webkit-scrollbar {
+  .navigation-menu.ant-menu-horizontal::-webkit-scrollbar {
     display: none;
   }
   
-  .ant-menu-item {
+  .navigation-menu .ant-menu-item {
     font-size: 13px;
-    margin: 0 2px;
-    padding: 0 8px;
-    height: 48px;
-    line-height: 48px;
+    margin: 0 6px !important;
+    padding: 6px 12px !important;
+    height: auto !important;
+    line-height: 1.5 !important;
     flex-shrink: 0;
   }
 
@@ -68,7 +72,7 @@
     display: inline-block;
   }
   
-  .ant-menu-item-icon {
+  .navigation-menu .ant-menu-item-icon {
     font-size: 14px;
     margin-right: 4px;
   }
@@ -78,45 +82,45 @@
       display: none;
     }
     
-    .ant-menu-item {
-      padding: 0 12px;
+    .navigation-menu .ant-menu-item {
+      padding: 6px 12px !important;
     }
 
-    .ant-menu-item-icon {
+    .navigation-menu .ant-menu-item-icon {
       margin-right: 0;
     }
   }
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {
-  .ant-menu-horizontal {
-    padding: 0 20px;
+  .navigation-menu.ant-menu-horizontal {
+    padding: 0 !important;
   }
   
-  .ant-menu-item {
+  .navigation-menu .ant-menu-item {
     font-size: 15px;
-    margin: 0 6px;
-    padding: 0 14px;
+    margin: 0 10px !important;
+    padding: 8px 16px !important;
   }
   
-  .ant-menu-item-icon {
+  .navigation-menu .ant-menu-item-icon {
     font-size: 17px;
     margin-right: 7px;
   }
 }
 
 @media (min-width: 1024px) {
-  .ant-menu-horizontal {
-    padding: 0 24px;
+  .navigation-menu.ant-menu-horizontal {
+    padding: 0 !important;
   }
   
-  .ant-menu-item {
+  .navigation-menu .ant-menu-item {
     font-size: 15px;
-    margin: 0 8px;
-    padding: 0 16px;
+    margin: 0 12px !important;
+    padding: 8px 16px !important;
   }
   
-  .ant-menu-item-icon {
+  .navigation-menu .ant-menu-item-icon {
     font-size: 18px;
     margin-right: 8px;
   }

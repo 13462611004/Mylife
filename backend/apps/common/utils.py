@@ -46,12 +46,20 @@ def build_file_url(file_path):
     if not file_path:
         return None
     
-    # 如果已经是完整URL，直接返回
+    # 如果已经是完整URL，检查并修复协议
     if file_path.startswith('http'):
+        # 如果URL是HTTP，检查是否应该转换为HTTPS（生产环境）
+        if file_path.startswith('http://') and ('xiaomanxia.com' in file_path or 'localhost' not in file_path):
+            # 生产环境使用HTTPS
+            return file_path.replace('http://', 'https://', 1)
         return file_path
     
     # 从settings中获取基础URL（默认使用HTTPS）
     base_url = getattr(settings, 'MEDIA_BASE_URL', 'https://xiaomanxia.com')
+    
+    # 确保base_url使用HTTPS（生产环境）
+    if 'xiaomanxia.com' in base_url and base_url.startswith('http://'):
+        base_url = base_url.replace('http://', 'https://', 1)
     
     # 确保file_path以/开头
     if not file_path.startswith('/'):

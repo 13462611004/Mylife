@@ -34,15 +34,6 @@ interface MarathonChartsProps {
 const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
   // 防御性处理，确保后续逻辑中使用的一定是数组
   const safeEvents: MarathonEvent[] = Array.isArray(events) ? events as MarathonEvent[] : [];
-  
-  console.log('MarathonCharts 接收到的 events 数据：', safeEvents);
-  console.log('events 长度：', safeEvents.length);
-  console.log('所有赛事的配速信息：', safeEvents.map(e => ({
-    name: e.event_name,
-    pace: e.pace,
-    paceType: typeof e.pace,
-    paceLength: e.pace ? String(e.pace).length : 0
-  })));
 
   // 地图状态管理
   const [currentLevel, setCurrentLevel] = useState<string>('country');
@@ -576,13 +567,6 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
     return [];
   };
 
-  console.log('过滤后的有配速数据的赛事数量：', recentEvents.length);
-  console.log('有配速数据的赛事详情：', recentEvents.map(e => ({
-    name: e.event_name,
-    date: e.event_date,
-    pace: e.pace
-  })));
-
   // 准备折线图数据 - 配速趋势
   const lineChartData = {
     labels: recentEvents.map(event => {
@@ -597,10 +581,10 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
           const paceMinutes = convertPaceToMinutes(event.pace);
           return paceMinutes !== null ? paceMinutes : 0;
         }),
-        borderColor: 'rgba(178, 42, 42, 1)', // 使用主题色 B22A2A
-        backgroundColor: 'rgba(178, 42, 42, 0.1)',
-        pointBackgroundColor: 'rgba(178, 42, 42, 1)',
-        pointBorderColor: '#fff',
+        borderColor: '#EF4444', // 激情红 - 用于重要数据（配速趋势）
+        backgroundColor: 'rgba(239, 68, 68, 0.1)', // 激情红半透明
+        pointBackgroundColor: '#F59E0B', // 活力橙 - 主强调色（数据点）
+        pointBorderColor: '#FFFFFF',
         pointBorderWidth: 2,
         pointRadius: 5,
         pointHoverRadius: 7,
@@ -609,8 +593,6 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
       },
     ],
   };
-
-  console.log('折线图数据：', lineChartData);
 
   // 折线图配置
   const lineChartOptions = {
@@ -760,12 +742,9 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
           mapName = cityCode;
         }
         
-        console.log('加载的原始GeoJSON数据:', geoJson);
-        
         // 使用echarts.registerMap注册地图数据
         if (geoJson) {
           echarts.registerMap(mapName, geoJson);
-          console.log('地图已注册:', mapName);
         } else {
           console.error('GeoJSON数据为空');
         }
@@ -829,7 +808,8 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
         text: ['多', '少'],
         calculable: true,
         inRange: {
-          color: ['#E0E0E0', '#FFF59D', '#FFEB3B', '#FFC107', '#FF9800']
+          // 马拉松界面配色：从浅灰到活力橙/激情红的渐变
+          color: ['#E5E7EB', '#FEF3C7', '#FDE68A', '#F59E0B', '#EF4444']
         }
       },
       series: [{
@@ -846,14 +826,15 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
         emphasis: {
           label: {
             show: true,
-            fontSize: 12
+            fontSize: 12,
+            color: '#1F2937' // 主文字颜色
           },
           itemStyle: {
-            areaColor: '#F6C12C'
+            areaColor: '#F59E0B' // 活力橙 - 悬停时高亮
           }
         },
         itemStyle: {
-          borderColor: '#999',
+          borderColor: '#D1D5DB', // 浅灰色边框
           borderWidth: 0.5
         }
       }]
@@ -871,15 +852,8 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
 
   // 检查是否有配速数据
   const hasPaceData = recentEvents.length > 0 && lineChartData.datasets[0].data.length > 0;
-  console.log('是否有配速数据：', hasPaceData);
-  console.log('recentEvents 数量：', recentEvents.length);
-  console.log('lineChartData.datasets[0].data 长度：', lineChartData.datasets[0].data.length);
-  console.log('lineChartData.datasets[0].data 内容：', lineChartData.datasets[0].data);
-
   // 地图点击事件处理
   const handleMapClick = (params: any) => {
-    console.log('地图点击事件：', params);
-    console.log('当前级别:', currentLevel, '选中省份:', selectedProvince, '选中城市:', selectedCity);
     
     if (currentLevel === 'country') {
       // 点击省份，进入省份地图
@@ -921,7 +895,6 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
 
   // 地图鼠标悬停事件处理
   const handleMapMouseover = (params: any) => {
-    console.log('地图悬停事件：', params);
     const regionName = params.name;
     const events = getEventsByRegion(regionName);
     
@@ -931,7 +904,6 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
       x = params.event.event?.clientX || params.event.clientX || 0;
       y = params.event.event?.clientY || params.event.clientY || 0;
     }
-    console.log('鼠标坐标:', x, y);
     
     // 悬浮窗始终显示
     setHoverTooltip({
@@ -988,11 +960,13 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
             }}
             style={{
               padding: '8px 16px',
-              backgroundColor: '#B22A2A',
+              backgroundColor: '#EF4444', // 激情红
               color: 'white',
               border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
+              borderRadius: '6px', // 符合设计标准
+              cursor: 'pointer',
+              fontWeight: 500,
+              transition: 'all 0.3s ease'
             }}
           >
             {isMunicipality(selectedProvince) && currentLevel === 'city' ? '返回全国地图' : '返回上一级'}
@@ -1066,7 +1040,7 @@ const MarathonCharts: React.FC<MarathonChartsProps> = ({ events }) => {
               pointerEvents: 'none'
             }}
           >
-            <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#B22A2A' }}>
+            <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#EF4444' }}>
               {hoverTooltip.events.length > 0 ? `${hoverTooltip.events[0].province || hoverTooltip.events[0].city || hoverTooltip.events[0].district}的赛事` : '暂无赛事'}
             </div>
             {currentLevel === 'country' ? (

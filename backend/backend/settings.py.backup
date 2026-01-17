@@ -114,7 +114,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',  # 测试环境使用不同的数据库文件，避免与主项目冲突
+        'NAME': BASE_DIR / 'db_test.sqlite3',  # 测试环境使用不同的数据库文件，避免与主项目冲突
         'OPTIONS': {
             # 优化SQLite性能，减少IO操作
             'timeout': 20,  # 数据库锁超时时间（秒）
