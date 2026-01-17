@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from django.core.management.utils import get_random_secret_key
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +22,34 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-f7qr*k-r973o5$&9=yjro@4z#62nrcnyj4kqy_i5*lf-d%c8*q'
+# 从环境变量读取SECRET_KEY，如果没有则生成一个新的（仅用于开发）
+# 生产环境必须在环境变量中设置SECRET_KEY！
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', get_random_secret_key())
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# 从环境变量读取DEBUG设置，默认False（生产环境）
+# 开发环境可以设置环境变量: export DJANGO_DEBUG=True
+DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['8.153.95.63', '172.31.180.1', 'localhost', '127.0.0.1', '192.168.31.142', '*']
+# ALLOWED_HOSTS - 移除通配符 '*'，只允许指定的域名和IP
+# 从环境变量读取，如果没有则使用默认列表
+ALLOWED_HOSTS_ENV = os.getenv('DJANGO_ALLOWED_HOSTS')
+if ALLOWED_HOSTS_ENV:
+    ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',')]
+else:
+    # 默认允许的域名和IP（生产环境应通过环境变量配置）
+    ALLOWED_HOSTS = [
+        'localhost',
+        '127.0.0.1',
+        '192.168.31.142',  # 本地局域网地址
+        'xiaomanxia.com',
+        'www.xiaomanxia.com',
+        'api.xiaomanxia.com',
+        '8.153.81.3',  # 云服务器公网IP（新）
+        # 注意：以下IP仅用于过渡期，建议逐步移除
+        '8.153.95.63',  # 云服务器公网IP（旧）
+        '172.31.180.1',  # 云服务器内网IP
+    ]
 
 
 # Application definition
@@ -161,16 +185,21 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS配置
+# 清理不再使用的域名，只保留实际使用的源
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',  # React默认开发端口
     'http://127.0.0.1:3000',  # 本地IP（Edge浏览器可能使用）
-    'http://172.31.180.1:3000',  # 云服务器内网前端端口
-    'http://8.153.95.63:3000',  # 云服务器公网前端端口（旧）
-    'http://8.153.81.3:3000',  # 云服务器公网前端端口（新）
-    'https://floppy-files-draw.loca.lt',  # 前端公网地址（旧）
-    'https://cyan-pugs-show.loca.lt',  # 前端公网地址（旧）
     'http://192.168.31.142:3000',  # 本地局域网地址
-    'https://backend-solo.loca.lt',  # 后端公网地址（用于跨域请求）
+    'https://xiaomanxia.com',  # 域名前端（HTTPS）
+    'https://www.xiaomanxia.com',  # 域名前端（HTTPS）
+    # 云服务器相关（过渡期使用，建议逐步迁移到域名）
+    'http://8.153.81.3:3000',  # 云服务器公网前端端口（新）
+    'http://172.31.180.1:3000',  # 云服务器内网前端端口
+    # 注意：以下旧地址已移除，如果不再使用
+    # 'http://8.153.95.63:3000',  # 云服务器公网前端端口（旧）- 如不再使用可删除
+    # 'https://floppy-files-draw.loca.lt',  # 前端公网地址（旧）- 已移除
+    # 'https://cyan-pugs-show.loca.lt',  # 前端公网地址（旧）- 已移除
+    # 'https://backend-solo.loca.lt',  # 后端公网地址（旧）- 已移除
 ]
 CORS_ALLOW_CREDENTIALS = True  # 允许携带cookies
 CORS_ALLOW_HEADERS = [
@@ -186,9 +215,18 @@ CORS_ALLOW_HEADERS = [
 ]  # 允许的请求头
 
 # Session配置
-SESSION_COOKIE_HTTPONLY = False  # 允许JavaScript访问cookie（开发环境）
-SESSION_COOKIE_SAMESITE = 'Lax'  # 允许跨站点cookie（Lax适用于同站请求，localhost和127.0.0.1视为同站）
-SESSION_COOKIE_SECURE = False  # 开发环境不需要HTTPS（生产环境应设为True）
+# 根据DEBUG模式动态配置Cookie安全设置
+if DEBUG:
+    # 开发环境配置（允许本地开发）
+    SESSION_COOKIE_HTTPONLY = False  # 开发环境允许JavaScript访问cookie
+    SESSION_COOKIE_SECURE = False  # 开发环境不需要HTTPS
+    SESSION_COOKIE_SAMESITE = 'Lax'  # Lax适用于同站请求，localhost和127.0.0.1视为同站
+else:
+    # 生产环境配置（安全配置）
+    SESSION_COOKIE_HTTPONLY = True  # 防止XSS攻击，禁止JavaScript访问cookie
+    SESSION_COOKIE_SECURE = True  # 只在HTTPS连接中传输cookie
+    SESSION_COOKIE_SAMESITE = 'Strict'  # 严格模式，防止CSRF攻击
+
 SESSION_COOKIE_DOMAIN = None  # 不限制域名，允许localhost和127.0.0.1
 # 优化：使用缓存存储session，减少数据库IO操作
 # 如果缓存不可用，会自动回退到数据库存储

@@ -134,23 +134,54 @@ stop_frontend() {
 }
 
 status() {
-    echo -e "${GREEN}=== 服务状态 ===${NC}"
+    local DETAILED=${1:-0}  # 是否显示详细信息
+    
+    if [ "$DETAILED" = "1" ]; then
+        echo -e "${GREEN}=== 详细服务状态检查 ===${NC}"
+        echo ""
+    else
+        echo -e "${GREEN}=== 服务状态 ===${NC}"
+    fi
     
     # 检查后端
     BACKEND_PID=$(pgrep -f "manage.py runserver" | head -1)
     if [ -n "$BACKEND_PID" ]; then
         echo -e "${GREEN}后端: 运行中 (PID: $BACKEND_PID)${NC}"
+        
+        # 检查端口监听（详细模式）
+        if [ "$DETAILED" = "1" ]; then
+            if lsof -ti :8000 > /dev/null 2>&1; then
+                echo -e "  ${GREEN}✓ 端口 8000 正在监听${NC}"
+            else
+                echo -e "  ${RED}✗ 端口 8000 未监听${NC}"
+            fi
+        fi
+        
+        # 测试HTTP访问
         HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/marathon/ 2>/dev/null)
         if [ "$HTTP_CODE" = "200" ]; then
             echo -e "  ${GREEN}状态码: $HTTP_CODE ✓${NC}"
         else
             echo -e "  ${YELLOW}状态码: $HTTP_CODE${NC}"
         fi
+        
+        # 详细模式：测试API端点
+        if [ "$DETAILED" = "1" ]; then
+            echo -e "  ${YELLOW}测试 API (localhost:8000/api/moments/posts/):${NC}"
+            API_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/moments/posts/ 2>/dev/null)
+            if [ "$API_CODE" = "200" ]; then
+                echo -e "    ${GREEN}✓ API 访问正常${NC}"
+            else
+                echo -e "    ${RED}✗ API 访问失败 (状态码: $API_CODE)${NC}"
+            fi
+        fi
+        
         echo $BACKEND_PID > "$PID_BACKEND" 2>/dev/null  # 更新PID文件
     else
         echo -e "${RED}后端: 未运行${NC}"
         rm -f "$PID_BACKEND" 2>/dev/null
     fi
+    echo ""
     
     # 检查前端（多种匹配方式）
     FRONTEND_PID=$(pgrep -f "react-scripts.*start.js" | head -1)
@@ -162,16 +193,77 @@ status() {
     fi
     if [ -n "$FRONTEND_PID" ]; then
         echo -e "${GREEN}前端: 运行中 (PID: $FRONTEND_PID)${NC}"
+        
+        # 检查端口监听（详细模式）
+        if [ "$DETAILED" = "1" ]; then
+            if lsof -ti :3000 > /dev/null 2>&1; then
+                echo -e "  ${GREEN}✓ 端口 3000 正在监听${NC}"
+            else
+                echo -e "  ${RED}✗ 端口 3000 未监听${NC}"
+            fi
+        fi
+        
+        # 测试HTTP访问
         HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 2>/dev/null)
         if [ "$HTTP_CODE" = "200" ]; then
             echo -e "  ${GREEN}状态码: $HTTP_CODE ✓${NC}"
         else
             echo -e "  ${YELLOW}状态码: $HTTP_CODE (可能还在启动中...)${NC}"
         fi
+        
         echo $FRONTEND_PID > "$PID_FRONTEND" 2>/dev/null  # 更新PID文件
     else
         echo -e "${RED}前端: 未运行${NC}"
         rm -f "$PID_FRONTEND" 2>/dev/null
+    fi
+    echo ""
+    
+    # 详细模式：检查FRP客户端
+    if [ "$DETAILED" = "1" ]; then
+        echo -e "${GREEN}FRP 客户端:${NC}"
+        FRPC_PID=$(pgrep -f "frpc.*frpc" | head -1)
+        if [ -n "$FRPC_PID" ]; then
+            echo -e "  ${GREEN}✓ 运行中 (PID: $FRPC_PID)${NC}"
+        else
+            echo -e "  ${RED}✗ 未运行${NC}"
+        fi
+        echo ""
+        
+        # 外网访问测试（可选）
+        EXTERNAL_IP="8.153.81.3"
+        echo -e "${YELLOW}外网访问测试:${NC}"
+        echo -e "  前端 (${EXTERNAL_IP}:3000):"
+        EXT_FRONTEND_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://${EXTERNAL_IP}:3000 2>/dev/null)
+        if [ "$EXT_FRONTEND_CODE" = "200" ]; then
+            echo -e "    ${GREEN}✓ 外网前端访问正常${NC}"
+        else
+            echo -e "    ${YELLOW}✗ 外网前端访问失败 (状态码: $EXT_FRONTEND_CODE) - 可能是网络或防火墙问题${NC}"
+        fi
+        
+        echo -e "  后端 API (${EXTERNAL_IP}:8000/api/moments/posts/):"
+        EXT_BACKEND_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://${EXTERNAL_IP}:8000/api/moments/posts/ 2>/dev/null)
+        if [ "$EXT_BACKEND_CODE" = "200" ]; then
+            echo -e "    ${GREEN}✓ 外网后端访问正常${NC}"
+        else
+            echo -e "    ${YELLOW}✗ 外网后端访问失败 (状态码: $EXT_BACKEND_CODE) - 可能是网络或防火墙问题${NC}"
+        fi
+        echo ""
+        
+        # 总结
+        total_services=2
+        running_services=0
+        [ -n "$BACKEND_PID" ] && ((running_services++))
+        [ -n "$FRONTEND_PID" ] && ((running_services++))
+        
+        echo -e "${GREEN}状态总结:${NC}"
+        echo -e "  运行中的服务: $running_services/$total_services"
+        if [ $running_services -eq $total_services ]; then
+            echo -e "  ${GREEN}🎉 所有服务都在正常运行！${NC}"
+        elif [ $running_services -gt 0 ]; then
+            echo -e "  ${YELLOW}⚠️  部分服务运行中，建议检查未运行的服务${NC}"
+        else
+            echo -e "  ${RED}❌ 所有服务都未运行，需要启动服务${NC}"
+        fi
     fi
 }
 
@@ -194,7 +286,10 @@ case "$1" in
         status
         ;;
     status)
-        status
+        status 0
+        ;;
+    check|detailed)
+        status 1
         ;;
     backend)
         case "$2" in
@@ -213,15 +308,16 @@ case "$1" in
         esac
         ;;
     *)
-        echo "用法: $0 {start|stop|restart|status|backend|frontend}"
+        echo "用法: $0 {start|stop|restart|status|check|backend|frontend}"
         echo ""
         echo "命令:"
         echo "  start       - 启动前后端服务"
         echo "  stop        - 停止前后端服务"
         echo "  restart     - 重启前后端服务"
-        echo "  status      - 查看服务状态"
-        echo "  backend     - 管理后端服务 (start/stop)"
-        echo "  frontend    - 管理前端服务 (start/stop)"
+        echo "  status      - 查看服务状态（简要）"
+        echo "  check       - 详细检查服务状态（含端口、外网访问测试）"
+        echo "  backend     - 管理后端服务 (start/stop/restart)"
+        echo "  frontend    - 管理前端服务 (start/stop/restart)"
         exit 1
         ;;
 esac

@@ -1,15 +1,13 @@
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.hashers import check_password
-from django.contrib.sessions.backends.db import SessionStore
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .models import AdminSetting
 from .serializers import AdminSettingSerializer
-import json
+import logging
 
-@csrf_exempt
+logger = logging.getLogger(__name__)
+
 @api_view(['POST'])
 def admin_login(request):
     """管理员登录"""
@@ -36,12 +34,9 @@ def admin_login(request):
         else:
             return Response({'error': '密码错误'}, status=status.HTTP_401_UNAUTHORIZED)
     except Exception as e:
-        import traceback
-        print(f"登录错误: {str(e)}")
-        print(traceback.format_exc())
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        logger.error(f'管理员登录失败: {str(e)}', exc_info=True)
+        return Response({'error': '登录失败，请稍后重试'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@csrf_exempt
 @api_view(['POST'])
 def admin_logout(request):
     """管理员注销"""
@@ -50,7 +45,6 @@ def admin_logout(request):
         del request.session['is_admin']
     return Response({'message': '注销成功'}, status=status.HTTP_200_OK)
 
-@csrf_exempt
 @api_view(['GET', 'PUT'])
 def admin_settings(request):
     """管理员设置"""

@@ -20,6 +20,13 @@ const getBaseURL = (): string => {
   const currentHost = window.location.hostname;
   const currentPort = window.location.port;
   
+  // 如果是域名访问，优先尝试使用 API 子域名，如果失败则使用主域名
+  if (currentHost === 'xiaomanxia.com' || currentHost === 'www.xiaomanxia.com') {
+    // 暂时使用主域名作为 API 地址（直到 api.xiaomanxia.com DNS 配置完成）
+    // 配置 DNS 后可以改为: return 'https://api.xiaomanxia.com';
+    return 'https://xiaomanxia.com';
+  }
+  
   // 如果是公网IP，使用公网IP的8000端口
   if (currentHost === '8.153.95.63' || currentHost === '172.31.180.1' || currentHost === '8.153.81.3') {
     return `http://${currentHost}:8000`;

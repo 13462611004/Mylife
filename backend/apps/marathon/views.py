@@ -1,13 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.views.decorators.cache import cache_page
-from django.utils.decorators import method_decorator
 from .models import Marathon, Province, City, District, MarathonRegistration
 from .serializers import MarathonSerializer, MarathonListSerializer, MarathonRegistrationSerializer, MarathonRegistrationListSerializer
 from .permissions import IsAdminOrReadOnly
 from django.conf import settings
 from django.core.cache import cache
+from apps.common.utils import delete_file_if_exists
 import os
 import requests
 import json
@@ -39,23 +38,32 @@ class MarathonListView(APIView):
 
 class MarathonDetail(APIView):
     """获取单个马拉松赛事详情"""
-    permission_classes = [IsAdminOrReadOnly]  # 允许游客读取
+    permission_classes = [IsAdminOrReadOnly]
 
-    def get_object(self, pk):
-        """获取指定ID的马拉松赛事"""
+    def get_object(self, pk, use_select_related=False):
+        """
+        获取指定ID的马拉松赛事
+        优化：避免重复查询，支持select_related优化
+        
+        Args:
+            pk: 主键
+            use_select_related: 是否使用select_related优化外键查询
+        """
+        queryset = Marathon.objects.all()
+        if use_select_related:
+            queryset = queryset.select_related('province_obj', 'city_obj', 'district_obj')
+        
         try:
-            return Marathon.objects.get(pk=pk)
+            return queryset.get(pk=pk)
         except Marathon.DoesNotExist:
             return None
 
     def get(self, request, pk):
         """获取单个马拉松赛事详情"""
-        marathon = self.get_object(pk)
+        marathon = self.get_object(pk, use_select_related=True)
         if marathon is None:
             return Response({'error': '马拉松赛事不存在'}, status=status.HTTP_404_NOT_FOUND)
-        # 使用select_related优化外键查询，减少SQL查询次数
-        # 重新查询以获取关联的外键对象
-        marathon = Marathon.objects.select_related('province_obj', 'city_obj', 'district_obj').get(pk=pk)
+        
         serializer = MarathonSerializer(marathon, context={'request': request})
         return Response(serializer.data)
 
@@ -75,11 +83,14 @@ class MarathonDetail(APIView):
         marathon = self.get_object(pk)
         if marathon is None:
             return Response({'error': '马拉松赛事不存在'}, status=status.HTTP_404_NOT_FOUND)
+        
         # 删除证书图片（如果存在）
         if marathon.certificate:
-            certificate_path = os.path.join(settings.MEDIA_ROOT, marathon.certificate.path)
-            if os.path.exists(certificate_path):
-                os.remove(certificate_path)
+            certificate_path = marathon.certificate.path
+            if certificate_path:
+                full_path = os.path.join(settings.MEDIA_ROOT, certificate_path.lstrip('/'))
+                delete_file_if_exists(full_path)
+        
         marathon.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -106,9 +117,10 @@ class UploadCertificate(APIView):
 
         # 删除旧证书（如果存在）
         if marathon.certificate:
-            old_certificate_path = os.path.join(settings.MEDIA_ROOT, marathon.certificate.path)
-            if os.path.exists(old_certificate_path):
-                os.remove(old_certificate_path)
+            old_certificate_path = marathon.certificate.path
+            if old_certificate_path:
+                full_path = os.path.join(settings.MEDIA_ROOT, old_certificate_path.lstrip('/'))
+                delete_file_if_exists(full_path)
 
         # 保存新证书
         marathon.certificate = request.FILES['certificate']

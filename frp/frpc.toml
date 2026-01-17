@@ -2,16 +2,40 @@ serverAddr = "8.153.81.3"
 serverPort = 7000
 auth.token = "mylife2024"
 
+# 前端 HTTP 代理 - 支持域名访问
 [[proxies]]
 name = "frontend"
-type = "tcp"
+type = "http"
 localIP = "127.0.0.1"
 localPort = 3000
-remotePort = 3000
+customDomains = ["xiaomanxia.com", "www.xiaomanxia.com"]
+headers = {
+  Host = "xiaomanxia.com"
+}
 
+# 后端 API HTTP 代理 - 支持域名访问
 [[proxies]]
 name = "backend"
+type = "http"
+localIP = "127.0.0.1"
+localPort = 8000
+customDomains = ["api.xiaomanxia.com"]
+headers = {
+  Host = "api.xiaomanxia.com"
+}
+
+# 后端 TCP 代理（备用，用于直接访问）
+[[proxies]]
+name = "backend-tcp"
 type = "tcp"
 localIP = "127.0.0.1"
 localPort = 8000
 remotePort = 8000
+
+# 前端 TCP 代理（备用，用于直接访问）
+[[proxies]]
+name = "frontend-tcp"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 3000
+remotePort = 3000

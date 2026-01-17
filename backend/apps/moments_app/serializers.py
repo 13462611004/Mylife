@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.db import transaction
 from .models import Post, PostMedia
 from .utils import extract_video_from_live_photo, is_live_photo
-from datetime import datetime
+from apps.common.utils import build_file_url
 
 
 class PostMediaSerializer(serializers.ModelSerializer):
@@ -36,22 +36,19 @@ class PostMediaSerializer(serializers.ModelSerializer):
     def get_file_url(self, obj):
         """
         获取文件的完整URL
+        使用统一的URL构建函数，避免硬编码
         """
         if obj.file:
-            # 返回文件的URL
-            return obj.file.url
+            return build_file_url(obj.file.url)
         return None
     
     def get_video_file_url(self, obj):
         """
         获取视频文件的完整URL（仅Live Photo）
+        使用统一的URL构建函数，避免硬编码
         """
         if obj.video_file:
-            # 返回视频文件的完整URL
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.video_file.url)
-            return obj.video_file.url
+            return build_file_url(obj.video_file.url)
         return None
 
 
@@ -89,7 +86,12 @@ class PostSerializer(serializers.ModelSerializer):
     def get_media_count(self, obj):
         """
         获取媒体文件的数量
+        优化：使用已加载的关联对象，避免额外的数据库查询
         """
+        # 如果media已经通过prefetch_related加载，直接使用len()
+        # 否则使用count()进行查询
+        if hasattr(obj, '_prefetched_objects_cache') and 'media' in obj._prefetched_objects_cache:
+            return len(obj.media.all())
         return obj.media.count()
     
     def get_created_at_formatted(self, obj):

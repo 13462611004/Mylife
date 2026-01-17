@@ -1,7 +1,6 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.db.models import Q
 from .models import Post, PostMedia
 from .serializers import (
@@ -10,6 +9,7 @@ from .serializers import (
     PostUpdateSerializer,
     PostMediaSerializer
 )
+from apps.common.utils import normalize_tags
 
 def detect_media_type(file):
     """
@@ -54,8 +54,9 @@ class PostViewSet(viewsets.ModelViewSet):
         """
         获取查询集
         支持搜索和日期筛选
+        优化：使用prefetch_related预加载媒体文件，避免N+1查询
         """
-        queryset = Post.objects.all()
+        queryset = Post.objects.prefetch_related('media').all()
         
         # 获取搜索关键词
         search = self.request.query_params.get('search', None)
@@ -127,12 +128,7 @@ class PostViewSet(viewsets.ModelViewSet):
             )
         
         # 处理标签：将#号分隔的标签转换为逗号分隔
-        tags = request.data.get('tags', '')
-        if tags:
-            # 将#号替换为逗号
-            tags = tags.replace('#', ',')
-            # 去除首尾的逗号和空格
-            tags = tags.strip(', ')
+        tags = normalize_tags(request.data.get('tags', ''))
         
         # 创建数据字典，不要使用request.data.copy()，它会破坏FormData结构
         data = {
@@ -149,9 +145,10 @@ class PostViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             # 保存朋友圈
             serializer.save()
-            # 返回创建的朋友圈数据
+            # 返回创建的朋友圈数据（传递 request 到序列化器）
+            post_serializer = PostSerializer(serializer.instance, context={'request': request})
             return Response(
-                PostSerializer(serializer.instance).data,
+                post_serializer.data,
                 status=status.HTTP_201_CREATED
             )
         # 验证失败，返回错误信息
@@ -182,9 +179,10 @@ class PostViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             # 保存更新
             serializer.save()
-            # 返回更新后的朋友圈数据
+            # 返回更新后的朋友圈数据（传递 request 到序列化器）
+            post_serializer = PostSerializer(instance, context={'request': request})
             return Response(
-                PostSerializer(instance).data,
+                post_serializer.data,
                 status=status.HTTP_200_OK
             )
         # 验证失败，返回错误信息
@@ -194,31 +192,30 @@ class PostViewSet(viewsets.ModelViewSet):
     def stats(self, request):
         """
         获取统计信息
+        优化：使用数据库聚合减少查询次数
         """
-        # 统计总数量
-        total_count = Post.objects.count()
-        
-        # 统计置顶数量
-        pinned_count = Post.objects.filter(is_pinned=True).count()
-        
-        # 统计有媒体文件的数量
-        with_media_count = Post.objects.filter(media__isnull=False).distinct().count()
-        
-        # 统计今天发布的数量
         from django.utils import timezone
-        from datetime import datetime
+        from django.db.models import Count, Q, Exists, OuterRef
+        
         today = timezone.now().date()
-        today_count = Post.objects.filter(
-            created_at__date=today
+        queryset = Post.objects.all()
+        
+        # 使用一次查询获取所有统计数据，减少数据库IO
+        # 使用聚合和子查询优化性能
+        stats = queryset.aggregate(
+            total_count=Count('id'),
+            pinned_count=Count('id', filter=Q(is_pinned=True)),
+            today_count=Count('id', filter=Q(created_at__date=today)),
+        )
+        
+        # 统计有媒体文件的数量（使用子查询优化）
+        with_media_count = queryset.filter(
+            Exists(PostMedia.objects.filter(post_id=OuterRef('id')))
         ).count()
         
-        # 返回统计信息
-        return Response({
-            'total_count': total_count,
-            'pinned_count': pinned_count,
-            'with_media_count': with_media_count,
-            'today_count': today_count
-        })
+        stats['with_media_count'] = with_media_count
+        
+        return Response(stats)
 
 
 class PostMediaViewSet(viewsets.ModelViewSet):

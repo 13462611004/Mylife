@@ -52,6 +52,11 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Environment variables (安全: 包含敏感信息)
+.env
+.env.*
+!.env.example
+
 # IDE
 .vscode/
 .idea/
@@ -101,3 +106,9 @@ __pycache__/
 # Temporary files
 *.tmp
 *.temp
+
+# PID files
+*.pid
+.backend.pid
+.frontend.pid
+.frpc.pid

@@ -66,19 +66,6 @@ const Moments: React.FC = () => {
         const posts = Array.isArray(paginatedResponse.results) ? paginatedResponse.results : [];
         setPosts(posts);
         setTotalCount(paginatedResponse.count || 0);
-        
-        // 添加日志输出
-        console.log('Fetched posts:', JSON.stringify(posts.map(post => ({
-          id: post.id,
-          content: post.content,
-          media_count: post.media_count,
-          media: post.media.map(m => ({
-            id: m.id,
-            media_type: m.media_type,
-            file: m.file,
-            video_file_url: m.video_file_url
-          }))
-        })), null, 2));
       } else if (Array.isArray(response)) {
         setPosts(response);
         setTotalCount(response.length);
@@ -101,20 +88,11 @@ const Moments: React.FC = () => {
     if (media.length === 1) {
       const item = media[0];
       
-      // 添加日志输出
-      console.log('Rendering media item:', JSON.stringify({
-        id: item.id,
-        media_type: item.media_type,
-        file: item.file,
-        video_file_url: item.video_file_url,
-        has_video: !!item.video_file_url
-      }, null, 2));
-      
       if (item.media_type === 'video') {
         return (
           <div style={{ marginTop: 12, position: 'relative' }}>
             <video
-              src={item.file}
+              src={item.file_url || item.file}
               controls
               style={{ width: '100%', maxHeight: isTimeline ? 300 : 400, borderRadius: 8 }}
               playsInline
@@ -124,15 +102,6 @@ const Moments: React.FC = () => {
       } else if (item.media_type === 'live') {
         const isPlaying = playingStates[item.id];
         const isPreviewing = previewMedia?.id === item.id;
-        
-        // 添加视频播放日志
-        if (isPlaying && !isPreviewing) {
-          console.log('🎬 Playing video:', {
-            video_file_url: item.video_file_url,
-            id: item.id,
-            media_type: item.media_type
-          });
-        }
         
         return (
           <div 
@@ -191,7 +160,7 @@ const Moments: React.FC = () => {
               />
             ) : (
               <img
-                src={item.file}
+                src={item.file_url || item.file}
                 alt="Live图"
                 style={{ 
                   width: '100%', 
@@ -222,7 +191,7 @@ const Moments: React.FC = () => {
         return (
           <div style={{ marginTop: 12 }}>
             <Image
-              src={item.file}
+              src={item.file_url || item.file}
               alt="朋友圈图片"
               style={{ width: '100%', maxHeight: isTimeline ? 300 : 400, objectFit: 'cover', borderRadius: 8 }}
               preview={{
@@ -242,7 +211,7 @@ const Moments: React.FC = () => {
               {item.media_type === 'video' ? (
                 <div style={{ position: 'relative' }}>
                   <video
-                    src={item.file}
+                    src={item.file_url || item.file}
                     controls
                     style={{ width: '100%', aspectRatio: 1, objectFit: 'cover', borderRadius: 8 }}
                     playsInline
@@ -251,7 +220,7 @@ const Moments: React.FC = () => {
               ) : item.media_type === 'live' ? (
                 <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 8 }}>
                   <img
-                    src={item.file}
+                    src={item.file_url || item.file}
                     alt={`Live图${index + 1}`}
                     style={{ 
                       width: '100%', 
@@ -303,7 +272,7 @@ const Moments: React.FC = () => {
                 </div>
               ) : (
                 <Image
-                  src={item.file}
+                  src={item.file_url || item.file}
                   alt={`朋友圈图片${index + 1}`}
                   style={{ width: '100%', aspectRatio: 1, objectFit: 'cover', borderRadius: 8 }}
                   preview={{
@@ -675,7 +644,7 @@ const Moments: React.FC = () => {
         )}
         {previewMedia && previewMedia.file && !previewMedia.video_file_url && (
           <Image
-            src={previewMedia.file}
+            src={previewMedia.file_url || previewMedia.file}
             alt="预览图片"
             style={{ width: '100%' }}
             preview={false}
